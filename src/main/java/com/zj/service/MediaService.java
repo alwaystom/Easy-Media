@@ -59,7 +59,7 @@ public class MediaService {
 				MediaTransferFlvByFFmpeg mediaTransferFlvByFFmpeg = (MediaTransferFlvByFFmpeg) mediaConvert;
 				//如果当前已经用javacv，则关闭再重新拉流
 				if(!camera.isEnabledFFmpeg()) {
-					mediaTransferFlvByFFmpeg.stop();
+					mediaTransferFlvByFFmpeg.stopFFmpeg();
 					cameras.remove(camera.getMediaKey());
 					this.playForHttp(camera, ctx);
 				} else {
@@ -107,7 +107,7 @@ public class MediaService {
 				MediaTransferFlvByFFmpeg mediaTransferFlvByFFmpeg = (MediaTransferFlvByFFmpeg) mediaConvert;
 				//如果当前已经用javacv，则关闭再重新拉流
 				if(!camera.isEnabledFFmpeg()) {
-					mediaTransferFlvByFFmpeg.stop();
+					mediaTransferFlvByFFmpeg.stopFFmpeg();
 					cameras.remove(camera.getMediaKey());
 					this.playForWs(camera, ctx);
 				} else {
@@ -203,7 +203,7 @@ public class MediaService {
 				cameras.remove(camera.getMediaKey());
 			} else if (mediaConvert instanceof MediaTransferFlvByFFmpeg) {
 				MediaTransferFlvByFFmpeg mediaTransferFlvByFFmpeg = (MediaTransferFlvByFFmpeg) mediaConvert;
-				mediaTransferFlvByFFmpeg.stop();
+				mediaTransferFlvByFFmpeg.stopFFmpeg();
 				cameras.remove(camera.getMediaKey());
 			}
 		}

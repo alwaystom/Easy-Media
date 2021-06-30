@@ -71,9 +71,12 @@ public class MediaTransferFlvByFFmpeg extends MediaTransfer {
 	private Thread outputThread;
 	private Thread listenThread;
 	private boolean running = false; // 启动
-	private boolean enableLog = false;
+	private boolean enableLog = true;
 	
 	private int hcSize, wcSize = 0;
+	
+	//记录当前
+	long currentTimeMillis = System.currentTimeMillis();
 
 	/**
 	 * 用于没有客户端时候的计时
@@ -132,16 +135,16 @@ public class MediaTransferFlvByFFmpeg extends MediaTransfer {
 		this
 		.addArgument("-rtsp_transport").addArgument("tcp")
 		.addArgument("-i").addArgument(camera.getUrl())
-		.addArgument("-max_delay").addArgument("100")
+		.addArgument("-max_delay").addArgument("1")
 //		.addArgument("-strict").addArgument("experimental")
 		.addArgument("-g").addArgument("25")
 		.addArgument("-r").addArgument("25")
 //		.addArgument("-b").addArgument("200000")
 //		.addArgument("-filter_complex").addArgument("setpts='(RTCTIME - RTCSTART) / (TB * 1000000)'")
 		.addArgument("-c:v").addArgument("libx264")
-//		.addArgument("-preset:v").addArgument("ultrafast")
-		.addArgument("-preset:v").addArgument("fast")
-//		.addArgument("-tune:v").addArgument("zerolatency")
+		.addArgument("-preset:v").addArgument("ultrafast")
+//		.addArgument("-preset:v").addArgument("fast")
+		.addArgument("-tune:v").addArgument("zerolatency")
 //		.addArgument("-crf").addArgument("26")
 		.addArgument("-c:a").addArgument("aac")
 //		.addArgument("-qmin").addArgument("28")
@@ -186,6 +189,7 @@ public class MediaTransferFlvByFFmpeg extends MediaTransfer {
 		try {
 			process = new ProcessBuilder(command).start();
 			running = true;
+			listenNetTimeout();
 			dealStream(process);
 			outputData();
 			listenClient();
@@ -293,6 +297,32 @@ public class MediaTransferFlvByFFmpeg extends MediaTransfer {
 		});
 		listenThread.start();
 	}
+	
+	/**
+	 * 监听网络异常超时
+	 */
+	public void listenNetTimeout() {
+		Thread listenNetTimeoutThread = new Thread(new Runnable() {
+			public void run() {
+				while (true) {
+					
+					if((System.currentTimeMillis()-currentTimeMillis) > 15000) {
+						log.info("网络异常超时");
+						MediaService.cameras.remove(camera.getMediaKey());
+						stopFFmpeg();
+						break;
+					}
+					
+					try {
+						Thread.sleep(5000);
+					} catch (InterruptedException e) {
+					}
+				}
+			}
+		});
+		listenNetTimeoutThread.setDaemon(true);
+		listenNetTimeoutThread.start();
+	}
 
 	public static MediaTransferFlvByFFmpeg atPath() {
 		return atPath(null);
@@ -327,6 +357,7 @@ public class MediaTransferFlvByFFmpeg extends MediaTransfer {
 				try {
 					while (running) {
 						line = in.readLine();
+						currentTimeMillis = System.currentTimeMillis();
 						if (line == null) {
 							break;
 						}
@@ -355,6 +386,7 @@ public class MediaTransferFlvByFFmpeg extends MediaTransfer {
 				try {
 					while (running) {
 						line = err.readLine();
+						currentTimeMillis = System.currentTimeMillis();
 						if (line == null) {
 							break;
 						}
@@ -404,7 +436,7 @@ public class MediaTransferFlvByFFmpeg extends MediaTransfer {
 	/**
 	 * 关闭
 	 */
-	public void stop() {
+	public void stopFFmpeg() {
 		this.running = false;
 		try {
 			this.process.destroy();

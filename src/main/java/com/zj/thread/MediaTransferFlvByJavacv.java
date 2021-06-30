@@ -182,7 +182,7 @@ public class MediaTransferFlvByJavacv extends MediaTransfer implements Runnable 
 		} catch (Exception e) {
 			MediaService.cameras.remove(camera.getMediaKey());
 			log.error("\r\n{}\r\n启动拉流器失败，网络超时或视频源不可用", camera.getUrl());
-			e.printStackTrace();
+//			e.printStackTrace();
 		}
 		return grabberStatus = false;
 	}
@@ -292,40 +292,26 @@ public class MediaTransferFlvByJavacv extends MediaTransfer implements Runnable 
 		//时间戳计算
 		long startTime = 0;
 		long videoTS = 0;
-		long lastTime=0;
 		// 累积延迟计算
-		long latencyDifference = 0;// 累积延迟
-		long lastLatencyDifference = 0;// 当前最新一组gop的延迟
-		long maxLatencyThreshold = 30000000;// 最大延迟阈值，如果lastLatencyDifference-latencyDifference>maxLatencyThreshold，则重启拉流器
-
-		long processTime = 0;// 上一帧处理耗时，用于延迟时间补偿，处理耗时不算进累积延迟
+//		long latencyDifference = 0;// 累积延迟
+//		long lastLatencyDifference = 0;// 当前最新一组gop的延迟
+//		long maxLatencyThreshold = 30000000;// 最大延迟阈值，如果lastLatencyDifference-latencyDifference>maxLatencyThreshold，则重启拉流器
+//		long processTime = 0;// 上一帧处理耗时，用于延迟时间补偿，处理耗时不算进累积延迟
+		
 		for(;running && grabberStatus && recorderStatus;) {
 			
-			lastTime=System.currentTimeMillis();
-			//累积延迟过大，则重新建立连接
-			if (lastLatencyDifference-latencyDifference>maxLatencyThreshold) {
-				// 重置参数
-				recorderStatus = false;
-				try {
-					if (!transferFlag) {
-						grabber.restart(); // grabber.grabFrame() avformat
-					}
-					//装封装模式，延迟很小不需要重启，只需要清空缓存即可
-					grabber.flush();
-					recorderStatus = true;
-					log.warn("\r\n{}\r\n重连成功》》》", camera.getUrl());
-					continue;
-				} catch (IOException e) {
-					log.warn("\r\n{}\r\n重连失败！", camera.getUrl());
-					// 跳出循环，销毁拉流器和录制器
-					break;
-				}
-			}
-
 			try {
 				if(transferFlag) {
 					//转复用
+					long startGrab = System.currentTimeMillis();
 					AVPacket pkt = grabber.grabPacket();
+					if((System.currentTimeMillis() - startGrab) > 5000) {
+//						doReConnect();
+//						continue;
+						log.info("\r\n{}\r\n视频流网络异常>>>", camera.getUrl());
+						closeMedia();
+						break;
+					} 
 					if (null!=pkt&&!pkt.isNull()) {
 						if (startTime == 0) {
 							startTime = System.currentTimeMillis();
@@ -341,7 +327,16 @@ public class MediaTransferFlvByJavacv extends MediaTransfer implements Runnable 
 					}
 				}else {
 					//转码
-					Frame frame = grabber.grabFrame();
+					long startGrab = System.currentTimeMillis();
+					Frame frame = grabber.grab();	//这边判断相机断网，正常50左右，断线15000
+					if((System.currentTimeMillis() - startGrab) > 5000) {
+//						doReConnect();
+//						continue;
+						log.info("\r\n{}\r\n视频流网络异常>>>", camera.getUrl());
+						closeMedia();
+						break;
+					} 
+					
 					if (frame != null) {
 						if (startTime == 0) {
 							startTime = System.currentTimeMillis();
@@ -357,32 +352,23 @@ public class MediaTransferFlvByJavacv extends MediaTransfer implements Runnable 
 					}
 				}
 			} catch (Exception e) {
-				//log.info("\r\n{}\r\n尝试重连。。。", camera.getUrl());
-				try {
-					Thread.sleep(500);
-				} catch (InterruptedException e1) {
-				}
-				//e.printStackTrace();
+				grabberStatus = false;
+				MediaService.cameras.remove(camera.getMediaKey());
 			} catch (org.bytedeco.javacv.FrameRecorder.Exception e) {
-				//runing = false;
-				log.info("\r\n{}\r\n录制器出现异常。。。", camera.getUrl());
-				e.printStackTrace();
-			}
+				recorderStatus = false;
+				MediaService.cameras.remove(camera.getMediaKey());
+			} 
+			
 			if (bos.size() > 0) {
 				byte[] b = bos.toByteArray();
 				bos.reset();
 
 				// 发送视频到前端
 				sendFrameData(b);
-				
-				//流程耗时记录
-				if(lastTime>0) {
-					processTime=System.currentTimeMillis()-lastTime;
-				}
 			}
 		}
 
-		// close包含stop和release方法。录制文件必须保证最后执行stop()方法
+		//启动失败，直接关闭， close包含stop和release方法。录制文件必须保证最后执行stop()方法
 		try {
 			recorder.close();
 			grabber.close();
@@ -394,7 +380,7 @@ public class MediaTransferFlvByJavacv extends MediaTransfer implements Runnable 
 		} catch (IOException e) {
 			e.printStackTrace();
 		} finally {
-			running = false;
+			closeMedia();
 		}
 		log.info("关闭媒体流-javacv，{} ", camera.getUrl());
 	}
@@ -460,8 +446,7 @@ public class MediaTransferFlvByJavacv extends MediaTransfer implements Runnable 
 		if (httpClients.isEmpty() && wsClients.isEmpty()) {
 			// 等待20秒还没有客户端，则关闭推流
 			if (noClient > camera.getNoClientsDuration()) {
-				running = false;
-				MediaService.cameras.remove(camera.getMediaKey());
+				closeMedia();
 			} else {
 				noClient += 1000;
 //				log.info("\r\n{}\r\n {} 秒自动关闭推拉流 \r\n", camera.getUrl(), noClientsDuration-noClient);
@@ -488,6 +473,40 @@ public class MediaTransferFlvByJavacv extends MediaTransfer implements Runnable 
 			}
 		});
 		listenThread.start();
+	}
+	
+	/**
+	 * 重连，目前重连有些问题，停止后时间戳也变化了，发现相机连不上先直接断开，清除缓存，后续再优化
+	 */
+//	private void doReConnect() {
+//		try {
+//			boolean createGrabber = createGrabber();
+//			while (!createGrabber) {
+//				try {
+//					Thread.sleep(5000);
+//				} catch (InterruptedException e) {
+//				}
+//				log.info("\r\n{}\r\n尝试重连>>>", camera.getUrl());
+//				createGrabber = createGrabber();
+//			}
+//			
+//		} finally {
+//			try {
+//				grabber.flush();
+//			} catch (Exception e) {
+//				running = false;
+//				MediaService.cameras.remove(camera.getMediaKey());
+//			}
+//		}
+//		log.info("\r\n{}\r\n重连成功", camera.getUrl());
+//	}
+	
+	/**
+	 * 关闭流媒体
+	 */
+	private void closeMedia() {
+		running = false;
+		MediaService.cameras.remove(camera.getMediaKey());
 	}
 
 	/**

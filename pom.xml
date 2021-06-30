@@ -13,7 +13,7 @@
 	<artifactId>EasyMedia</artifactId>
 	<version>0.0.1-SNAPSHOT</version>
 	<name>EasyMedia</name>
-	<description>Demo project for Spring Boot</description>
+	<description>一款简单的流媒体服务</description>
 
 	<properties>
 		<java.version>1.8</java.version>
