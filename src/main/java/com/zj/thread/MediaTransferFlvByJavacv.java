@@ -507,6 +507,20 @@ public class MediaTransferFlvByJavacv extends MediaTransfer implements Runnable 
 	private void closeMedia() {
 		running = false;
 		MediaService.cameras.remove(camera.getMediaKey());
+		
+		//媒体异常时，主动断开前端长连接
+		for (Entry<String, ChannelHandlerContext> entry : wsClients.entrySet()) {
+			try {
+				entry.getValue().close();
+			} catch (java.lang.Exception e) {
+			}
+		}
+		for (Entry<String, ChannelHandlerContext> entry : httpClients.entrySet()) {
+			try {
+				entry.getValue().close();
+			} catch (java.lang.Exception e) {
+			}
+		}
 	}
 
 	/**

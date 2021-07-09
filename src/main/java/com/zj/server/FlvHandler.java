@@ -4,6 +4,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
+import com.zj.common.MediaConstant;
 import com.zj.dto.Camera;
 import com.zj.service.MediaService;
 
@@ -14,6 +15,8 @@ import io.netty.buffer.Unpooled;
 import io.netty.channel.ChannelFutureListener;
 import io.netty.channel.ChannelHandler.Sharable;
 import io.netty.channel.ChannelHandlerContext;
+import io.netty.channel.ChannelPromise;
+import io.netty.channel.DefaultChannelPromise;
 import io.netty.channel.SimpleChannelInboundHandler;
 import io.netty.handler.codec.http.DefaultFullHttpResponse;
 import io.netty.handler.codec.http.DefaultHttpResponse;
@@ -109,7 +112,11 @@ public class FlvHandler extends SimpleChannelInboundHandler<Object> {
 				if (handshaker == null) {
 					WebSocketServerHandshakerFactory.sendUnsupportedVersionResponse(ctx.channel());
 				} else {
-					handshaker.handshake(ctx.channel(), req);
+					HttpResponse rsp = new DefaultHttpResponse(HttpVersion.HTTP_1_1, HttpResponseStatus.OK);
+					rsp.headers().set(HttpHeaderNames.SERVER, MediaConstant.serverName);
+					DefaultChannelPromise channelPromise = new DefaultChannelPromise(ctx.channel());
+					
+					handshaker.handshake(ctx.channel(), req, rsp.headers(), channelPromise);
 					mediaService.playForWs(camera, ctx);
 				}
 			}
@@ -148,7 +155,7 @@ public class FlvHandler extends SimpleChannelInboundHandler<Object> {
 		rsp.headers().set(HttpHeaderNames.CONNECTION, HttpHeaderValues.CLOSE)
 				.set(HttpHeaderNames.CONTENT_TYPE, "video/x-flv").set(HttpHeaderNames.ACCEPT_RANGES, "bytes")
 				.set(HttpHeaderNames.PRAGMA, "no-cache").set(HttpHeaderNames.CACHE_CONTROL, "no-cache")
-				.set(HttpHeaderNames.TRANSFER_ENCODING, HttpHeaderValues.CHUNKED).set(HttpHeaderNames.SERVER, "zhang");
+				.set(HttpHeaderNames.TRANSFER_ENCODING, HttpHeaderValues.CHUNKED).set(HttpHeaderNames.SERVER, MediaConstant.serverName);
 		ctx.writeAndFlush(rsp);
 	}
 

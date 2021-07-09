@@ -5,7 +5,6 @@ import java.util.concurrent.ConcurrentHashMap;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
-import com.zj.common.CacheMap;
 import com.zj.common.ClientType;
 import com.zj.dto.Camera;
 import com.zj.thread.MediaTransfer;
