@@ -447,12 +447,16 @@ public class MediaTransferFlvByFFmpeg extends MediaTransfer {
 			try {
 				entry.getValue().close();
 			} catch (java.lang.Exception e) {
+			} finally {
+				wsClients.remove(entry.getKey());
 			}
 		}
 		for (Entry<String, ChannelHandlerContext> entry : httpClients.entrySet()) {
 			try {
 				entry.getValue().close();
 			} catch (java.lang.Exception e) {
+			} finally {
+				httpClients.remove(entry.getKey());
 			}
 		}
 	}
