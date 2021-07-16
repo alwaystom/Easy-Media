@@ -74,7 +74,6 @@ public class MediaServer {
         //绑定端口,开始接收进来的连接
         try {
             ChannelFuture future = bootstrap.bind(socketAddress).sync();
-            log.info("流媒体服务启动开始监听端口: {}", socketAddress.getPort());
             future.channel().closeFuture().sync();
         } catch (InterruptedException e) {
             e.printStackTrace();

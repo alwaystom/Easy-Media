@@ -12,7 +12,7 @@ import lombok.Setter;
  */
 @Getter
 @Setter
-public class Camera implements Serializable {
+public class CameraDto implements Serializable {
 	/**
 	 * 
 	 */

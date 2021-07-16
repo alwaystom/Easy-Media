@@ -2,11 +2,10 @@ package com.zj.service;
 
 import java.util.concurrent.ConcurrentHashMap;
 
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import com.zj.common.ClientType;
-import com.zj.dto.Camera;
+import com.zj.dto.CameraDto;
 import com.zj.thread.MediaTransfer;
 import com.zj.thread.MediaTransferFlvByFFmpeg;
 import com.zj.thread.MediaTransferFlvByJavacv;
@@ -25,9 +24,6 @@ import io.netty.channel.ChannelHandlerContext;
 @Service
 public class MediaService {
 	
-	@Autowired
-	private CameraRepository cameraRepository;
-
 	/**
 	 * 缓存流转换线程
 	 */
@@ -36,45 +32,44 @@ public class MediaService {
 	
 	/**
 	 * http-flv播放
-	 * @param camera
+	 * @param cameraDto
 	 * @param ctx
 	 */
-	public void playForHttp(Camera camera, ChannelHandlerContext ctx) {
-		doStore(camera);
+	public void playForHttp(CameraDto cameraDto, ChannelHandlerContext ctx) {
 		
-		if (cameras.containsKey(camera.getMediaKey())) {
-			MediaTransfer mediaConvert = cameras.get(camera.getMediaKey());
+		if (cameras.containsKey(cameraDto.getMediaKey())) {
+			MediaTransfer mediaConvert = cameras.get(cameraDto.getMediaKey());
 			if(mediaConvert instanceof MediaTransferFlvByJavacv) {
 				MediaTransferFlvByJavacv mediaTransferFlvByJavacv = (MediaTransferFlvByJavacv) mediaConvert;
 				//如果当前已经用ffmpeg，则重新拉流
-				if(camera.isEnabledFFmpeg()) {
+				if(cameraDto.isEnabledFFmpeg()) {
 					mediaTransferFlvByJavacv.setRunning(false);
-					cameras.remove(camera.getMediaKey());
-					this.playForHttp(camera, ctx);
+					cameras.remove(cameraDto.getMediaKey());
+					this.playForHttp(cameraDto, ctx);
 				} else {
 					mediaTransferFlvByJavacv.addClient(ctx, ClientType.HTTP);
 				}
 			} else if (mediaConvert instanceof MediaTransferFlvByFFmpeg) {
 				MediaTransferFlvByFFmpeg mediaTransferFlvByFFmpeg = (MediaTransferFlvByFFmpeg) mediaConvert;
 				//如果当前已经用javacv，则关闭再重新拉流
-				if(!camera.isEnabledFFmpeg()) {
+				if(!cameraDto.isEnabledFFmpeg()) {
 					mediaTransferFlvByFFmpeg.stopFFmpeg();
-					cameras.remove(camera.getMediaKey());
-					this.playForHttp(camera, ctx);
+					cameras.remove(cameraDto.getMediaKey());
+					this.playForHttp(cameraDto, ctx);
 				} else {
 					mediaTransferFlvByFFmpeg.addClient(ctx, ClientType.HTTP);
 				}
 			}
 			
 		} else {
-			if(camera.isEnabledFFmpeg()) {
-				MediaTransferFlvByFFmpeg mediaft = new MediaTransferFlvByFFmpeg(camera);
+			if(cameraDto.isEnabledFFmpeg()) {
+				MediaTransferFlvByFFmpeg mediaft = new MediaTransferFlvByFFmpeg(cameraDto);
 				mediaft.execute();
-				cameras.put(camera.getMediaKey(), mediaft);
+				cameras.put(cameraDto.getMediaKey(), mediaft);
 				mediaft.addClient(ctx, ClientType.HTTP);
 			} else {
-				MediaTransferFlvByJavacv mediaConvert = new MediaTransferFlvByJavacv(camera);
-				cameras.put(camera.getMediaKey(), mediaConvert);
+				MediaTransferFlvByJavacv mediaConvert = new MediaTransferFlvByJavacv(cameraDto);
+				cameras.put(cameraDto.getMediaKey(), mediaConvert);
 				ThreadUtil.execute(mediaConvert);
 				mediaConvert.addClient(ctx, ClientType.HTTP);
 			}
@@ -84,44 +79,43 @@ public class MediaService {
 
 	/**
 	 * ws-flv播放
-	 * @param camera
+	 * @param cameraDto
 	 * @param ctx
 	 */
-	public void playForWs(Camera camera, ChannelHandlerContext ctx) {
-		doStore(camera);
+	public void playForWs(CameraDto cameraDto, ChannelHandlerContext ctx) {
 		
-		if (cameras.containsKey(camera.getMediaKey())) {
-			MediaTransfer mediaConvert = cameras.get(camera.getMediaKey());
+		if (cameras.containsKey(cameraDto.getMediaKey())) {
+			MediaTransfer mediaConvert = cameras.get(cameraDto.getMediaKey());
 			if(mediaConvert instanceof MediaTransferFlvByJavacv) {
 				MediaTransferFlvByJavacv mediaTransferFlvByJavacv = (MediaTransferFlvByJavacv) mediaConvert;
 				//如果当前已经用ffmpeg，则重新拉流
-				if(camera.isEnabledFFmpeg()) {
+				if(cameraDto.isEnabledFFmpeg()) {
 					mediaTransferFlvByJavacv.setRunning(false);
-					cameras.remove(camera.getMediaKey());
-					this.playForWs(camera, ctx);
+					cameras.remove(cameraDto.getMediaKey());
+					this.playForWs(cameraDto, ctx);
 				} else {
 					mediaTransferFlvByJavacv.addClient(ctx, ClientType.WEBSOCKET);
 				}
 			} else if (mediaConvert instanceof MediaTransferFlvByFFmpeg) {
 				MediaTransferFlvByFFmpeg mediaTransferFlvByFFmpeg = (MediaTransferFlvByFFmpeg) mediaConvert;
 				//如果当前已经用javacv，则关闭再重新拉流
-				if(!camera.isEnabledFFmpeg()) {
+				if(!cameraDto.isEnabledFFmpeg()) {
 					mediaTransferFlvByFFmpeg.stopFFmpeg();
-					cameras.remove(camera.getMediaKey());
-					this.playForWs(camera, ctx);
+					cameras.remove(cameraDto.getMediaKey());
+					this.playForWs(cameraDto, ctx);
 				} else {
 					mediaTransferFlvByFFmpeg.addClient(ctx, ClientType.WEBSOCKET);
 				}
 			}
 		} else {
-			if(camera.isEnabledFFmpeg()) {
-				MediaTransferFlvByFFmpeg mediaft = new MediaTransferFlvByFFmpeg(camera);
+			if(cameraDto.isEnabledFFmpeg()) {
+				MediaTransferFlvByFFmpeg mediaft = new MediaTransferFlvByFFmpeg(cameraDto);
 				mediaft.execute();
-				cameras.put(camera.getMediaKey(), mediaft);
+				cameras.put(cameraDto.getMediaKey(), mediaft);
 				mediaft.addClient(ctx, ClientType.WEBSOCKET);
 			} else {
-				MediaTransferFlvByJavacv mediaConvert = new MediaTransferFlvByJavacv(camera);
-				cameras.put(camera.getMediaKey(), mediaConvert);
+				MediaTransferFlvByJavacv mediaConvert = new MediaTransferFlvByJavacv(cameraDto);
+				cameras.put(cameraDto.getMediaKey(), mediaConvert);
 				ThreadUtil.execute(mediaConvert);
 				mediaConvert.addClient(ctx, ClientType.WEBSOCKET);	
 			}
@@ -130,30 +124,29 @@ public class MediaService {
 	
 	/**
 	 * api播放
-	 * @param camera
+	 * @param cameraDto
 	 * @return 
 	 */
-	public boolean playForApi(Camera camera) {
+	public boolean playForApi(CameraDto cameraDto) {
 		// 区分不同媒体
-		String mediaKey = MD5.create().digestHex(camera.getUrl());
-		camera.setMediaKey(mediaKey);
+		String mediaKey = MD5.create().digestHex(cameraDto.getUrl());
+		cameraDto.setMediaKey(mediaKey);
+		cameraDto.setEnabledFlv(true);
 		
-		camera.setEnabledFlv(true);
-		cameraRepository.edit(camera);
-		
-		MediaTransfer mediaTransfer = cameras.get(camera.getMediaKey());
+		MediaTransfer mediaTransfer = cameras.get(cameraDto.getMediaKey());
 		if (null == mediaTransfer) {
-			if(camera.isEnabledFFmpeg()) {
-				MediaTransferFlvByFFmpeg mediaft = new MediaTransferFlvByFFmpeg(camera);
+			if(cameraDto.isEnabledFFmpeg()) {
+				MediaTransferFlvByFFmpeg mediaft = new MediaTransferFlvByFFmpeg(cameraDto);
 				mediaft.execute();
-				cameras.put(camera.getMediaKey(), mediaft);
+				cameras.put(cameraDto.getMediaKey(), mediaft);
 			} else {
-				MediaTransferFlvByJavacv mediaConvert = new MediaTransferFlvByJavacv(camera);
-				cameras.put(camera.getMediaKey(), mediaConvert);
+				MediaTransferFlvByJavacv mediaConvert = new MediaTransferFlvByJavacv(cameraDto);
+				cameras.put(cameraDto.getMediaKey(), mediaConvert);
 				ThreadUtil.execute(mediaConvert);
 			}
 		}
 		
+		mediaTransfer = cameras.get(cameraDto.getMediaKey());
 		//同步等待
 		if(mediaTransfer instanceof MediaTransferFlvByJavacv) {
 			MediaTransferFlvByJavacv mediaft = (MediaTransferFlvByJavacv) mediaTransfer;
@@ -185,40 +178,23 @@ public class MediaService {
 	
 	/**
 	 * 关闭流
-	 * @param camera
+	 * @param cameraDto
 	 */
-	public void closeForApi(Camera camera) {
-		String mediaKey = MD5.create().digestHex(camera.getUrl());
-		camera.setMediaKey(mediaKey);
+	public void closeForApi(CameraDto cameraDto) {
+		cameraDto.setEnabledFlv(false);
 		
-		camera.setEnabledFlv(false);
-		cameraRepository.edit(camera);
-		
-		if (cameras.containsKey(camera.getMediaKey())) {
-			MediaTransfer mediaConvert = cameras.get(camera.getMediaKey());
+		if (cameras.containsKey(cameraDto.getMediaKey())) {
+			MediaTransfer mediaConvert = cameras.get(cameraDto.getMediaKey());
 			if(mediaConvert instanceof MediaTransferFlvByJavacv) {
 				MediaTransferFlvByJavacv mediaTransferFlvByJavacv = (MediaTransferFlvByJavacv) mediaConvert;
 				mediaTransferFlvByJavacv.setRunning(false);
-				cameras.remove(camera.getMediaKey());
+				cameras.remove(cameraDto.getMediaKey());
 			} else if (mediaConvert instanceof MediaTransferFlvByFFmpeg) {
 				MediaTransferFlvByFFmpeg mediaTransferFlvByFFmpeg = (MediaTransferFlvByFFmpeg) mediaConvert;
 				mediaTransferFlvByFFmpeg.stopFFmpeg();
-				cameras.remove(camera.getMediaKey());
+				cameras.remove(cameraDto.getMediaKey());
 			}
 		}
-	}
-	
-	/**
-	 * 是否要做存储
-	 * @param camera
-	 */
-	public void doStore(Camera camera) {
-		/**
-		 * 不需要自动关闭，保存到json，后续可能会采用sqllite等本地数据库
-		 */
-		if (!camera.isAutoClose()) {
-			cameraRepository.add(camera);
-		} 
 	}
 	
 }

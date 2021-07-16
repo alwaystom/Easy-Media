@@ -10,6 +10,7 @@ import lombok.Data;
 @Data
 public class CameraVo {
 
+	private String id;
 	/**
 	 * 播放地址
 	 */

@@ -8,12 +8,11 @@ import org.springframework.core.env.Environment;
 import org.springframework.stereotype.Service;
 
 import com.zj.common.CacheMap;
-import com.zj.dto.Camera;
+import com.zj.dto.CameraDto;
 import com.zj.thread.MediaTransferHls;
 
 import cn.hutool.core.convert.Convert;
 import cn.hutool.core.io.IoUtil;
-import cn.hutool.core.thread.ThreadUtil;
 import cn.hutool.crypto.digest.MD5;
 
 /**
@@ -61,12 +60,12 @@ public class HlsService {
 	/**
 	 * 关闭hls切片
 	 * 
-	 * @param camera
+	 * @param cameraDto
 	 */
-	public void closeConvertToHls(Camera camera) {
+	public void closeConvertToHls(CameraDto cameraDto) {
 
 		// 区分不同媒体
-		String mediaKey = MD5.create().digestHex(camera.getUrl());
+		String mediaKey = MD5.create().digestHex(cameraDto.getUrl());
 
 		if (cameras.containsKey(mediaKey)) {
 			MediaTransferHls mediaTransferHls = cameras.get(mediaKey);
@@ -80,23 +79,25 @@ public class HlsService {
 	/**
 	 * 开始hls切片
 	 * 
-	 * @param camera
+	 * @param cameraDto
 	 * @return
 	 */
-	public boolean startConvertToHls(Camera camera) {
+	public boolean startConvertToHls(CameraDto cameraDto) {
 
 		// 区分不同媒体
-		String mediaKey = MD5.create().digestHex(camera.getUrl());
-		camera.setMediaKey(mediaKey);
+		String mediaKey = MD5.create().digestHex(cameraDto.getUrl());
+		cameraDto.setMediaKey(mediaKey);
 
 		MediaTransferHls mediaTransferHls = cameras.get(mediaKey);
 
 		if (null == mediaTransferHls) {
-			mediaTransferHls = new MediaTransferHls(camera, Convert.toInt(env.getProperty("server.port")));
+			mediaTransferHls = new MediaTransferHls(cameraDto, Convert.toInt(env.getProperty("server.port")));
 			cameras.put(mediaKey, mediaTransferHls);
 			mediaTransferHls.execute();
 		}
 
+		mediaTransferHls = cameras.get(mediaKey);
+		
 		// 15秒还没true认为启动不了
 		for (int i = 0; i < 30; i++) {
 			if (mediaTransferHls.isRunning()) {

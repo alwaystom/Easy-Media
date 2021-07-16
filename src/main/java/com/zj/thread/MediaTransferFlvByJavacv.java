@@ -15,7 +15,7 @@ import org.bytedeco.javacv.Frame;
 import org.bytedeco.javacv.FrameGrabber.Exception;
 
 import com.zj.common.ClientType;
-import com.zj.dto.Camera;
+import com.zj.dto.CameraDto;
 import com.zj.service.MediaService;
 
 import io.netty.buffer.Unpooled;
@@ -94,7 +94,7 @@ public class MediaTransferFlvByJavacv extends MediaTransfer implements Runnable 
 	/**
 	 * 相机
 	 */
-	private Camera camera;
+	private CameraDto cameraDto;
 
 	/**
 	 * 监听线程，用于监听状态
@@ -102,12 +102,12 @@ public class MediaTransferFlvByJavacv extends MediaTransfer implements Runnable 
 	private Thread listenThread;
 
 	/**
-	 * @param camera
+	 * @param cameraDto
 	 * @param autoClose 流是否可以自动关闭
 	 */
-	public MediaTransferFlvByJavacv(Camera camera) {
+	public MediaTransferFlvByJavacv(CameraDto cameraDto) {
 		super();
-		this.camera = camera;
+		this.cameraDto = cameraDto;
 	}
 
 	public boolean isRunning() {
@@ -141,35 +141,35 @@ public class MediaTransferFlvByJavacv extends MediaTransfer implements Runnable 
 	 */
 	protected boolean createGrabber() {
 		// 拉流器
-		grabber = new FFmpegFrameGrabber(camera.getUrl());
+		grabber = new FFmpegFrameGrabber(cameraDto.getUrl());
 		// 超时时间(15秒)
-		grabber.setOption("stimeout", camera.getNetTimeout());
+		grabber.setOption("stimeout", cameraDto.getNetTimeout());
 		grabber.setOption("threads", "1");
 		// grabber.setPixelFormat(avutil.AV_PIX_FMT_YUV420P);
 		// 设置缓存大小，提高画质、减少卡顿花屏
 		grabber.setOption("buffer_size", "1024000");
 
 		// 读写超时，适用于所有协议的通用读写超时
-		grabber.setOption("rw_timeout", camera.getReadOrWriteTimeout());
+		grabber.setOption("rw_timeout", cameraDto.getReadOrWriteTimeout());
 		// 探测视频流信息，为空默认5000000微秒
-		grabber.setOption("probesize", camera.getReadOrWriteTimeout());
+		grabber.setOption("probesize", cameraDto.getReadOrWriteTimeout());
 		// 解析视频流信息，为空默认5000000微秒
-		grabber.setOption("analyzeduration", camera.getReadOrWriteTimeout());
+		grabber.setOption("analyzeduration", cameraDto.getReadOrWriteTimeout());
 
 		// 如果为rtsp流，增加配置
-		if ("rtsp".equals(camera.getUrl().substring(0, 4))) {
+		if ("rtsp".equals(cameraDto.getUrl().substring(0, 4))) {
 			// 设置打开协议tcp / udp
 			grabber.setOption("rtsp_transport", "tcp");
 			// 首选TCP进行RTP传输
 			grabber.setOption("rtsp_flags", "prefer_tcp");
 
-		} else if ("rtmp".equals(camera.getUrl().substring(0, 4))) {
+		} else if ("rtmp".equals(cameraDto.getUrl().substring(0, 4))) {
 			// rtmp拉流缓冲区，默认3000毫秒
 			grabber.setOption("rtmp_buffer", "1000");
 			// 默认rtmp流为直播模式，不允许seek
 			// grabber.setOption("rtmp_live", "live");
 
-		} else if ("desktop".equals(camera.getUrl())) {
+		} else if ("desktop".equals(cameraDto.getUrl())) {
 			// 支持本地屏幕采集，可以用于监控屏幕、局域网和wifi投屏等
 			grabber.setFormat("gdigrab");
 			grabber.setOption("draw_mouse", "1");// 绘制鼠标
@@ -181,11 +181,11 @@ public class MediaTransferFlvByJavacv extends MediaTransfer implements Runnable 
 
 		try {
 			grabber.start();
-			log.info("\r\n{}\r\n启动拉流器成功", camera.getUrl());
+			log.info("\r\n{}\r\n启动拉流器成功", cameraDto.getUrl());
 			return grabberStatus = true;
 		} catch (Exception e) {
-			MediaService.cameras.remove(camera.getMediaKey());
-			log.error("\r\n{}\r\n启动拉流器失败，网络超时或视频源不可用", camera.getUrl());
+			MediaService.cameras.remove(cameraDto.getMediaKey());
+			log.error("\r\n{}\r\n启动拉流器失败，网络超时或视频源不可用", cameraDto.getUrl());
 //			e.printStackTrace();
 		}
 		return grabberStatus = false;
@@ -209,12 +209,12 @@ public class MediaTransferFlvByJavacv extends MediaTransfer implements Runnable 
 			recorder.setVideoOption("threads", "1");
 			recorder.setFrameRate(25);// 设置帧率
 			recorder.setGopSize(25);// 设置gop,与帧率相同，相当于间隔1秒chan's一个关键帧
-//						recorder.setVideoBitrate(500 * 1000);// 码率500kb/s
-			recorder.setVideoCodecName("libx264");
-//						recorder.setVideoCodec(avcodec.AV_CODEC_ID_H264);
+//			recorder.setVideoBitrate(500 * 1000);// 码率500kb/s
+//			recorder.setVideoCodecName("libx264");	//javacv 1.5.5无法使用libx264名称，请使用下面方法
+			recorder.setVideoCodec(avcodec.AV_CODEC_ID_H264);
 			recorder.setPixelFormat(avutil.AV_PIX_FMT_YUV420P);
-//						recorder.setAudioCodec(avcodec.AV_CODEC_ID_AAC);
-			recorder.setAudioCodecName("aac");
+			recorder.setAudioCodec(avcodec.AV_CODEC_ID_AAC);
+//			recorder.setAudioCodecName("aac");
 			/**
 			 * 启用RDOQ算法，优化视频质量 1：在视频码率和视频质量之间取得平衡 2：最大程度优化视频质量（会降低编码速度和提高码率）
 			 */
@@ -225,7 +225,7 @@ public class MediaTransferFlvByJavacv extends MediaTransfer implements Runnable 
 				return recorderStatus = true;
 			} catch (org.bytedeco.javacv.FrameRecorder.Exception e1) {
 				log.info("启动转码录制器失败", e1);
-				MediaService.cameras.remove(camera.getMediaKey());
+				MediaService.cameras.remove(cameraDto.getMediaKey());
 				e1.printStackTrace();
 			}
 		} else {
@@ -236,7 +236,7 @@ public class MediaTransferFlvByJavacv extends MediaTransfer implements Runnable 
 				recorder.start(grabber.getFormatContext());
 				return recorderStatus = true;
 			} catch (org.bytedeco.javacv.FrameRecorder.Exception e) {
-				log.warn("\r\n{}\r\n启动转复用录制器失败", camera.getUrl());
+				log.warn("\r\n{}\r\n启动转复用录制器失败", cameraDto.getUrl());
 				// 如果转复用失败，则自动切换到转码模式
 				transferFlag = false;
 				if (recorder != null) {
@@ -246,10 +246,10 @@ public class MediaTransferFlvByJavacv extends MediaTransfer implements Runnable 
 					}
 				}
 				if (createTransterOrRecodeRecorder()) {
-					log.error("\r\n{}\r\n切换到转码模式", camera.getUrl());
+					log.error("\r\n{}\r\n切换到转码模式", cameraDto.getUrl());
 					return true;
 				}
-				log.error("\r\n{}\r\n切换转码模式失败", camera.getUrl());
+				log.error("\r\n{}\r\n切换转码模式失败", cameraDto.getUrl());
 				e.printStackTrace();
 			}
 		}
@@ -264,8 +264,8 @@ public class MediaTransferFlvByJavacv extends MediaTransfer implements Runnable 
 	private boolean supportFlvFormatCodec() {
 		int vcodec = grabber.getVideoCodec();
 		int acodec = grabber.getAudioCodec();
-		return (camera.getType() == 0)
-				&& ("desktop".equals(camera.getUrl()) || avcodec.AV_CODEC_ID_H264 == vcodec
+		return (cameraDto.getType() == 0)
+				&& ("desktop".equals(cameraDto.getUrl()) || avcodec.AV_CODEC_ID_H264 == vcodec
 						|| avcodec.AV_CODEC_ID_H263 == vcodec)
 				&& (avcodec.AV_CODEC_ID_AAC == acodec || avcodec.AV_CODEC_ID_AAC_LATM == acodec);
 	}
@@ -318,7 +318,7 @@ public class MediaTransferFlvByJavacv extends MediaTransfer implements Runnable 
 					if ((System.currentTimeMillis() - startGrab) > 5000) {
 //						doReConnect();
 //						continue;
-						log.info("\r\n{}\r\n视频流网络异常>>>", camera.getUrl());
+						log.info("\r\n{}\r\n视频流网络异常>>>", cameraDto.getUrl());
 						closeMedia();
 						break;
 					}
@@ -343,7 +343,7 @@ public class MediaTransferFlvByJavacv extends MediaTransfer implements Runnable 
 					if ((System.currentTimeMillis() - startGrab) > 5000) {
 //						doReConnect();
 //						continue;
-						log.info("\r\n{}\r\n视频流网络异常>>>", camera.getUrl());
+						log.info("\r\n{}\r\n视频流网络异常>>>", cameraDto.getUrl());
 						closeMedia();
 						break;
 					}
@@ -365,10 +365,10 @@ public class MediaTransferFlvByJavacv extends MediaTransfer implements Runnable 
 				}
 			} catch (Exception e) {
 				grabberStatus = false;
-				MediaService.cameras.remove(camera.getMediaKey());
+				MediaService.cameras.remove(cameraDto.getMediaKey());
 			} catch (org.bytedeco.javacv.FrameRecorder.Exception e) {
 				recorderStatus = false;
-				MediaService.cameras.remove(camera.getMediaKey());
+				MediaService.cameras.remove(cameraDto.getMediaKey());
 			}
 
 			if (bos.size() > 0) {
@@ -394,7 +394,7 @@ public class MediaTransferFlvByJavacv extends MediaTransfer implements Runnable 
 		} finally {
 			closeMedia();
 		}
-		log.info("关闭媒体流-javacv，{} ", camera.getUrl());
+		log.info("关闭媒体流-javacv，{} ", cameraDto.getUrl());
 	}
 
 	/**
@@ -447,17 +447,17 @@ public class MediaTransferFlvByJavacv extends MediaTransfer implements Runnable 
 		if (hcSize != newHcSize || wcSize != newWcSize) {
 			hcSize = newHcSize;
 			wcSize = newWcSize;
-			log.info("\r\n{}\r\nhttp连接数：{}, ws连接数：{} \r\n", camera.getUrl(), newHcSize, newWcSize);
+			log.info("\r\n{}\r\nhttp连接数：{}, ws连接数：{} \r\n", cameraDto.getUrl(), newHcSize, newWcSize);
 		}
 
 		// 无需自动关闭
-		if (!camera.isAutoClose()) {
+		if (!cameraDto.isAutoClose()) {
 			return;
 		}
 
 		if (httpClients.isEmpty() && wsClients.isEmpty()) {
 			// 等待20秒还没有客户端，则关闭推流
-			if (noClient > camera.getNoClientsDuration()) {
+			if (noClient > cameraDto.getNoClientsDuration()) {
 				closeMedia();
 			} else {
 				noClient += 1000;
@@ -518,7 +518,7 @@ public class MediaTransferFlvByJavacv extends MediaTransfer implements Runnable 
 	 */
 	private void closeMedia() {
 		running = false;
-		MediaService.cameras.remove(camera.getMediaKey());
+		MediaService.cameras.remove(cameraDto.getMediaKey());
 
 		// 媒体异常时，主动断开前端长连接
 		for (Entry<String, ChannelHandlerContext> entry : wsClients.entrySet()) {

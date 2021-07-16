@@ -10,9 +10,13 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
-import com.zj.dto.Camera;
+import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
+import com.zj.common.AjaxResult;
+import com.zj.dto.CameraDto;
+import com.zj.entity.Camera;
+import com.zj.mapper.CameraMapper;
 import com.zj.service.HlsService;
-import com.zj.vo.Result;
+import com.zj.vo.CameraVo;
 
 import cn.hutool.core.io.IORuntimeException;
 import cn.hutool.core.util.StrUtil;
@@ -31,6 +35,8 @@ public class HlsController {
 	
 	@Autowired
 	private HlsService hlsService;
+	@Autowired
+	private CameraMapper cameraMapper;
 
 	/**
 	 * ts接收接口（回传，这里只占用网络资源，避免使用硬盘资源）
@@ -86,14 +92,14 @@ public class HlsController {
 	 * @throws IOException
 	 */
 	@RequestMapping("hls")
-	public void video(Camera camera, HttpServletResponse response)
+	public void video(CameraDto cameraDto, HttpServletResponse response)
 			throws IOException {
-		if (StrUtil.isBlank(camera.getUrl())) {
+		if (StrUtil.isBlank(cameraDto.getUrl())) {
 			response.setContentType("application/json");
 			response.getOutputStream().write("参数有误".getBytes("utf-8"));
 			response.getOutputStream().flush();
 		} else {
-			String mediaKey = MD5.create().digestHex(camera.getUrl());
+			String mediaKey = MD5.create().digestHex(cameraDto.getUrl());
 			byte[] hls = HlsService.cacheM3u8.get(mediaKey);
 			if(null == hls) {
 				response.setContentType("application/json");
@@ -108,16 +114,51 @@ public class HlsController {
 
 	}
 	
+	/**
+	 * 关闭切片
+	 * @param cameraVo
+	 * @return
+	 */
 	@RequestMapping("stopHls")
-	public Result stop(Camera camera) {
-		hlsService.closeConvertToHls(camera);
-		return new Result("停止推流", 200, true);
+	public AjaxResult stop(CameraVo cameraVo) {
+		String digestHex = MD5.create().digestHex(cameraVo.getUrl());
+		CameraDto cameraDto = new CameraDto();
+		cameraDto.setUrl(cameraVo.getUrl());
+		cameraDto.setMediaKey(digestHex);
+		
+		Camera camera = new Camera();
+		camera.setHls(0);
+		QueryWrapper<Camera> queryWrapper = new QueryWrapper<>();
+		queryWrapper.eq("media_key", digestHex);
+		int res = cameraMapper.update(camera, queryWrapper);
+		
+		hlsService.closeConvertToHls(cameraDto);
+		return AjaxResult.success("停止切片成功");
 	}
 	
+	/**
+	 * 开启切片
+	 * @param cameraVo
+	 * @return
+	 */
 	@RequestMapping("startHls")
-	public Result start(Camera camera) {
-		boolean startConvertToHls = hlsService.startConvertToHls(camera);
-		return new Result("开始推流", 200, startConvertToHls);
+	public AjaxResult start(CameraVo cameraVo) {
+		String digestHex = MD5.create().digestHex(cameraVo.getUrl());
+		CameraDto cameraDto = new CameraDto();
+		cameraDto.setUrl(cameraVo.getUrl());
+		cameraDto.setMediaKey(digestHex);
+		
+		boolean startConvertToHls = hlsService.startConvertToHls(cameraDto);
+		
+		if(startConvertToHls) {
+			Camera camera = new Camera();
+			QueryWrapper<Camera> queryWrapper = new QueryWrapper<>();
+			queryWrapper.eq("media_key", digestHex);
+			camera.setHls(1);
+			int res = cameraMapper.update(camera, queryWrapper);
+		}
+		
+		return AjaxResult.success("开启切片成功", startConvertToHls);
 	}
 	
 }

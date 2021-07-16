@@ -18,7 +18,7 @@ import org.bytedeco.javacv.FrameGrabber.Exception;
 
 import com.zj.common.ClientType;
 import com.zj.common.MediaConstant;
-import com.zj.dto.Camera;
+import com.zj.dto.CameraDto;
 import com.zj.service.MediaService;
 
 import cn.hutool.core.collection.CollUtil;
@@ -59,7 +59,7 @@ public class MediaTransferFlvByFFmpeg extends MediaTransfer {
 	/**
 	 * 相机
 	 */
-	private Camera camera;
+	private CameraDto cameraDto;
 
 	private List<String> command = new ArrayList<>();
 
@@ -88,21 +88,21 @@ public class MediaTransferFlvByFFmpeg extends MediaTransfer {
 		buildCommand();
 	}
 
-	public MediaTransferFlvByFFmpeg(Camera camera) {
+	public MediaTransferFlvByFFmpeg(CameraDto cameraDto) {
 		command.add(System.getProperty(MediaConstant.ffmpegPathKey));
-		this.camera = camera;
+		this.cameraDto = cameraDto;
 		buildCommand();
 	}
 
-	public MediaTransferFlvByFFmpeg(final String executable, Camera camera) {
+	public MediaTransferFlvByFFmpeg(final String executable, CameraDto cameraDto) {
 		command.add(executable);
-		this.camera = camera;
+		this.cameraDto = cameraDto;
 		buildCommand();
 	}
 
-	public MediaTransferFlvByFFmpeg(final String executable, Camera camera, boolean enableLog) {
+	public MediaTransferFlvByFFmpeg(final String executable, CameraDto cameraDto, boolean enableLog) {
 		command.add(executable);
-		this.camera = camera;
+		this.cameraDto = cameraDto;
 		this.enableLog = enableLog;
 		buildCommand();
 	}
@@ -132,7 +132,7 @@ public class MediaTransferFlvByFFmpeg extends MediaTransfer {
 	 * 构建ffmpeg命令
 	 */
 	private void buildCommand() {
-		this.addArgument("-rtsp_transport").addArgument("tcp").addArgument("-i").addArgument(camera.getUrl())
+		this.addArgument("-rtsp_transport").addArgument("tcp").addArgument("-i").addArgument(cameraDto.getUrl())
 				.addArgument("-max_delay").addArgument("1")
 //		.addArgument("-strict").addArgument("experimental")
 				.addArgument("-g").addArgument("25").addArgument("-r").addArgument("25")
@@ -247,7 +247,7 @@ public class MediaTransferFlvByFFmpeg extends MediaTransfer {
 					} catch (java.lang.Exception e) {
 					}
 
-					log.info("关闭媒体流-ffmpeg，{} ", camera.getUrl());
+					log.info("关闭媒体流-ffmpeg，{} ", cameraDto.getUrl());
 
 				} catch (SocketTimeoutException e1) {
 //					e1.printStackTrace();
@@ -255,7 +255,7 @@ public class MediaTransferFlvByFFmpeg extends MediaTransfer {
 				} catch (IOException e) {
 //					e.printStackTrace();
 				} finally {
-					MediaService.cameras.remove(camera.getMediaKey());
+					MediaService.cameras.remove(cameraDto.getMediaKey());
 					running = false;
 					process.destroy();
 					try {
@@ -305,7 +305,7 @@ public class MediaTransferFlvByFFmpeg extends MediaTransfer {
 
 					if ((System.currentTimeMillis() - currentTimeMillis) > 15000) {
 						log.info("网络异常超时");
-						MediaService.cameras.remove(camera.getMediaKey());
+						MediaService.cameras.remove(cameraDto.getMediaKey());
 						stopFFmpeg();
 						break;
 					}
@@ -437,7 +437,7 @@ public class MediaTransferFlvByFFmpeg extends MediaTransfer {
 		this.running = false;
 		try {
 			this.process.destroy();
-			log.info("关闭媒体流-ffmpeg，{} ", camera.getUrl());
+			log.info("关闭媒体流-ffmpeg，{} ", cameraDto.getUrl());
 		} catch (java.lang.Exception e) {
 			process.destroyForcibly();
 		}
@@ -473,19 +473,19 @@ public class MediaTransferFlvByFFmpeg extends MediaTransfer {
 		if (hcSize != newHcSize || wcSize != newWcSize) {
 			hcSize = newHcSize;
 			wcSize = newWcSize;
-			log.info("\r\n{}\r\nhttp连接数：{}, ws连接数：{} \r\n", camera.getUrl(), newHcSize, newWcSize);
+			log.info("\r\n{}\r\nhttp连接数：{}, ws连接数：{} \r\n", cameraDto.getUrl(), newHcSize, newWcSize);
 		}
 
 		// 无需自动关闭
-		if (!camera.isAutoClose()) {
+		if (!cameraDto.isAutoClose()) {
 			return;
 		}
 
 		if (httpClients.isEmpty() && wsClients.isEmpty()) {
 			// 等待20秒还没有客户端，则关闭推流
-			if (noClient > camera.getNoClientsDuration()) {
+			if (noClient > cameraDto.getNoClientsDuration()) {
 				running = false;
-				MediaService.cameras.remove(camera.getMediaKey());
+				MediaService.cameras.remove(cameraDto.getMediaKey());
 			} else {
 				noClient += 1000;
 //				log.info("\r\n{}\r\n {} 秒自动关闭推拉流 \r\n", camera.getUrl(), noClientsDuration-noClient);

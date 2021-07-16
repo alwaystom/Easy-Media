@@ -5,7 +5,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 import com.zj.common.MediaConstant;
-import com.zj.dto.Camera;
+import com.zj.dto.CameraDto;
 import com.zj.service.MediaService;
 
 import cn.hutool.core.convert.Convert;
@@ -15,7 +15,6 @@ import io.netty.buffer.Unpooled;
 import io.netty.channel.ChannelFutureListener;
 import io.netty.channel.ChannelHandler.Sharable;
 import io.netty.channel.ChannelHandlerContext;
-import io.netty.channel.ChannelPromise;
 import io.netty.channel.DefaultChannelPromise;
 import io.netty.channel.SimpleChannelInboundHandler;
 import io.netty.handler.codec.http.DefaultFullHttpResponse;
@@ -89,9 +88,9 @@ public class FlvHandler extends SimpleChannelInboundHandler<Object> {
 				return;
 			}
 
-			Camera camera = buildCamera(req.uri());
+			CameraDto cameraDto = buildCamera(req.uri());
 
-			if (StrUtil.isBlank(camera.getUrl())) {
+			if (StrUtil.isBlank(cameraDto.getUrl())) {
 				log.info("url有误");
 				sendError(ctx, HttpResponseStatus.BAD_REQUEST);
 				return;
@@ -100,7 +99,7 @@ public class FlvHandler extends SimpleChannelInboundHandler<Object> {
 			if (!req.decoderResult().isSuccess() || (!"websocket".equals(req.headers().get("Upgrade")))) {
 				// http请求
 				sendFlvReqHeader(ctx);
-				mediaService.playForHttp(camera, ctx);
+				mediaService.playForHttp(cameraDto, ctx);
 
 			} else {
 				// websocket握手，请求升级
@@ -117,7 +116,7 @@ public class FlvHandler extends SimpleChannelInboundHandler<Object> {
 					DefaultChannelPromise channelPromise = new DefaultChannelPromise(ctx.channel());
 					
 					handshaker.handshake(ctx.channel(), req, rsp.headers(), channelPromise);
-					mediaService.playForWs(camera, ctx);
+					mediaService.playForWs(cameraDto, ctx);
 				}
 			}
 
@@ -208,9 +207,9 @@ public class FlvHandler extends SimpleChannelInboundHandler<Object> {
 	 * @param url 
 	 * @return
 	 */
-	private Camera buildCamera(String url) {
-		Camera camera = new Camera();
-		setConfig(camera);
+	private CameraDto buildCamera(String url) {
+		CameraDto cameraDto = new CameraDto();
+		setConfig(cameraDto);
 		
 		String[] split = url.split("url=");
 		String urlParent = split[1];
@@ -223,44 +222,44 @@ public class FlvHandler extends SimpleChannelInboundHandler<Object> {
 					if (as.length <= 1) {
 						throw new RuntimeException("autoClose参数有误");
 					}
-					camera.setAutoClose(Convert.toBool(as[1], false));
+					cameraDto.setAutoClose(Convert.toBool(as[1], false));
 				} else if (string.indexOf("ffmpeg=") != -1) {
 					String[] as = string.split("=");
 					if (as.length <= 1) {
 						throw new RuntimeException("ffmpeg参数有误");
 					}
-					camera.setEnabledFFmpeg(Convert.toBool(as[1], false));
+					cameraDto.setEnabledFFmpeg(Convert.toBool(as[1], false));
 				} else if (string.indexOf("hls=") != -1) {
 					String[] as = string.split("=");
 					if (as.length <= 1) {
 						throw new RuntimeException("hls参数有误");
 					}
-					camera.setEnabledHls(Convert.toBool(as[1], false));
+					cameraDto.setEnabledHls(Convert.toBool(as[1], false));
 				} else {
-					camera.setUrl(string);
+					cameraDto.setUrl(string);
 				}
 			}
 		}
 
-		if (isLocalFile(camera.getUrl())) {
-			camera.setType(1);
+		if (isLocalFile(cameraDto.getUrl())) {
+			cameraDto.setType(1);
 		}
 
 		// 区分不同媒体
-		String mediaKey = MD5.create().digestHex(camera.getUrl());
-		camera.setMediaKey(mediaKey);
+		String mediaKey = MD5.create().digestHex(cameraDto.getUrl());
+		cameraDto.setMediaKey(mediaKey);
 
-		return camera;
+		return cameraDto;
 	}
 
 	/**
 	 * 配置默认参数
 	 */
-	private void setConfig(Camera camera) {
-		camera.setNetTimeout(netTimeout);
-		camera.setReadOrWriteTimeout(readOrWriteTimeout);
-		camera.setAutoClose(autoClose);
-		camera.setNoClientsDuration(noClientsDuration);
+	private void setConfig(CameraDto cameraDto) {
+		cameraDto.setNetTimeout(netTimeout);
+		cameraDto.setReadOrWriteTimeout(readOrWriteTimeout);
+		cameraDto.setAutoClose(autoClose);
+		cameraDto.setNoClientsDuration(noClientsDuration);
 	}
 	
 	/**

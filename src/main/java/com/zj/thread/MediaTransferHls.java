@@ -7,7 +7,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 import com.zj.common.MediaConstant;
-import com.zj.dto.Camera;
+import com.zj.dto.CameraDto;
 
 import cn.hutool.core.collection.CollUtil;
 import cn.hutool.crypto.digest.MD5;
@@ -36,7 +36,7 @@ public class MediaTransferHls extends MediaTransfer {
 	/**
 	 * 相机
 	 */
-	private Camera camera;
+	private CameraDto cameraDto;
 
 	/**
 	 * cmd
@@ -53,10 +53,10 @@ public class MediaTransferHls extends MediaTransfer {
 
 	/**
 	 * 
-	 * @param camera
+	 * @param cameraDto
 	 */
-	public MediaTransferHls(Camera camera, int port) {
-		this.camera = camera;
+	public MediaTransferHls(CameraDto cameraDto, int port) {
+		this.cameraDto = cameraDto;
 		this.port = port;
 		buildCommand();
 	}
@@ -68,13 +68,13 @@ public class MediaTransferHls extends MediaTransfer {
 		
 		command.add(System.getProperty(MediaConstant.ffmpegPathKey));
 		command.add("-i");
-		command.add(camera.getUrl());
+		command.add(cameraDto.getUrl());
 		command.add("-r");
 		command.add("25");
 		command.add("-g");
 		command.add("25");
 		command.add("-c:v");
-		command.add("libx264");
+		command.add("h264");	//javacv 1.5.5 无法使用libx264
 		command.add("-c:a");
 		command.add("aac");
 		command.add("-f");
@@ -86,10 +86,10 @@ public class MediaTransferHls extends MediaTransfer {
 		command.add("-hls_time");
 		command.add("1");
 		command.add("-hls_base_url");
-		command.add("/ts/"+camera.getMediaKey()+"/");
+		command.add("/ts/"+cameraDto.getMediaKey()+"/");
 		command.add("-method");
 		command.add("put");
-		command.add("http://localhost:"+port+"/record/"+camera.getMediaKey()+"/out.m3u8");
+		command.add("http://localhost:"+port+"/record/"+cameraDto.getMediaKey()+"/out.m3u8");
 		
 	}
 	
@@ -117,7 +117,7 @@ public class MediaTransferHls extends MediaTransfer {
 		this.running = false;
 		try {
 			process.destroy();
-			log.info("关闭媒体流-ffmpeg，{} ", camera.getUrl());
+			log.info("关闭媒体流-ffmpeg，{} ", cameraDto.getUrl());
 		} catch (Exception e) {
 			process.destroyForcibly();
 		}
