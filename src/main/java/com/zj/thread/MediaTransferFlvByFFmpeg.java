@@ -129,24 +129,24 @@ public class MediaTransferFlvByFFmpeg extends MediaTransfer {
 	}
 
 	/**
-	 * 构建ffmpeg转码命令,新版javacv移除libx264，使用libopenh264
-	 * 查看显卡硬件加速支持的选项ffmpeg -hwaccels
-	 * 查看ffmpeg支持选项
-	 * linux：ffmpeg -codecs | grep cuvid，
-	 * window：ffmpeg -codecs | findstr cuvid
-	 * h264_nvenc
-	 * ffmpeg -hwaccel cuvid -c:v h264_cuvid -rtsp_transport tcp -i "rtsp地址" -c:v h264_nvenc -b:v 500k -vf scale_npp=1280:-1 -y /home/2.mp4
+	 * 构建ffmpeg转码命令,新版javacv移除libx264，使用libopenh264 查看显卡硬件加速支持的选项ffmpeg -hwaccels
+	 * 查看ffmpeg支持选项 linux：ffmpeg -codecs | grep cuvid， window：ffmpeg -codecs |
+	 * findstr cuvid h264_nvenc ffmpeg -hwaccel cuvid -c:v h264_cuvid
+	 * -rtsp_transport tcp -i "rtsp地址" -c:v h264_nvenc -b:v 500k -vf
+	 * scale_npp=1280:-1 -y /home/2.mp4
 	 *
-	 * -hwaccel cuvid：指定使用cuvid硬件加速
-	 * -c:v h264_cuvid：使用h264_cuvid进行视频解码
-	 *  -c:v h264_nvenc：使用h264_nvenc进行视频编码
-	 *  -vf scale_npp=1280:-1：指定输出视频的宽高，注意，这里和软解码时使用的-vf scale=x:x不一样
-	 *  
-	 *  转码期间nvidia-smi查看显卡状态
-	 *  -hwaccel_device N 指定某颗GPU执行转码任务
+	 * -hwaccel cuvid：指定使用cuvid硬件加速 -c:v h264_cuvid：使用h264_cuvid进行视频解码 -c:v
+	 * h264_nvenc：使用h264_nvenc进行视频编码 -vf
+	 * scale_npp=1280:-1：指定输出视频的宽高，注意，这里和软解码时使用的-vf scale=x:x不一样
+	 * 
+	 * 转码期间nvidia-smi查看显卡状态 -hwaccel_device N 指定某颗GPU执行转码任务
 	 */
 	private void buildCommand() {
-		this.addArgument("-rtsp_transport").addArgument("tcp").addArgument("-i").addArgument(cameraDto.getUrl())
+		// 如果为rtsp流，增加配置
+		if ("rtsp".equals(cameraDto.getUrl().substring(0, 4))) {
+			this.addArgument("-rtsp_transport").addArgument("tcp");
+		}
+		this.addArgument("-i").addArgument(cameraDto.getUrl())
 				.addArgument("-max_delay").addArgument("1")
 //		.addArgument("-strict").addArgument("experimental")
 				.addArgument("-g").addArgument("25").addArgument("-r").addArgument("25")
@@ -163,16 +163,14 @@ public class MediaTransferFlvByFFmpeg extends MediaTransfer {
 //		.addArgument("-b:a").addArgument("64k")
 				.addArgument("-f").addArgument("flv");
 	}
-	
+
 	/**
 	 * 转封装命令
 	 */
 	private void buildCopyCommand() {
 		this.addArgument("-rtsp_transport").addArgument("tcp").addArgument("-i").addArgument(cameraDto.getUrl())
-				.addArgument("-max_delay").addArgument("1")
-				.addArgument("-g").addArgument("25").addArgument("-r").addArgument("25")
-				.addArgument("-c:v").addArgument("copy")
-				.addArgument("-c:a").addArgument("copy")
+				.addArgument("-max_delay").addArgument("1").addArgument("-g").addArgument("25").addArgument("-r")
+				.addArgument("25").addArgument("-c:v").addArgument("copy").addArgument("-c:a").addArgument("copy")
 				.addArgument("-f").addArgument("flv");
 	}
 
