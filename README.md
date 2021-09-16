@@ -5,7 +5,7 @@
 Springboot、netty实现的http-flv、websocket-flv流媒体服务（可用于直播点播），支持rtsp、h264、h265等、rtmp等多种源，h5纯js播放（不依赖flash），不需要依赖nginx等第三方，延迟大部分在1-5秒内（已经支持转复用，h264的流自动转封装，超低延迟。PS:当然还有种更低延迟的不用flv方案没时间写了，但是主要是flv比较大众，这个一般也够用了）。
 
 
-[成品下载-7.16](https://pan.baidu.com/s/1kx3pwYVG_HfAt8JmQti86g "成品下载")
+[成品下载-7.16，此版本已不是最新，新版本请自行下载编译](https://pan.baidu.com/s/1kx3pwYVG_HfAt8JmQti86g "成品下载-7.16，此版本已不是最新，新版本请自行下载编译")
 
 
 链接：https://pan.baidu.com/s/1kx3pwYVG_HfAt8JmQti86g 
@@ -27,6 +27,7 @@ PS：项目里已经集成最新版编译好的前端，由于前端只是个dem
 - 支持hls内存切片（不占用本地磁盘，只占用网络资源）
 - 重连功能
 - 支持javacv、ffmpeg方式切换
+- 云台控制（目前只支持海康、大华待更新）
 
 #### 软件架构
 - netty负责播放地址解析及视频传输，通过javacv推拉流存到内存里，直接通过输出到前端播放
@@ -83,6 +84,17 @@ ffmpeg=true 使用ffmpeg方式，提高兼容稳定性（不支持的流可以�
 //hls=true（目前还不支持此参数，只能api或者网页端控制开启）
 ```
 
+- 云台功能
+```
+目前支持海康相机，大华待更新
+http://localhost:8888/hk/ctrl?ip=192.168.2.120&op=left&username=admin&password=VZCDOY
+ip 相机ip
+op 操作，up、down、left、right、left_up、left_down、right_up、right_down、big、small
+username 相机用户名
+password 相机密码
+port 控制端口（可不传）
+```
+
 - 页面功能
 ```
 可以访问 http://localhost:8888
@@ -124,6 +136,13 @@ java -jar -Dserver.port=页面端口 -Dmediaserver.port=媒体端口 EasyMedia-x
 
 1.  环境：java8+
 2.  标准的maven项目，sts、eclipse或者idea导入，直接运行main方法
+
+
+#### 更新说明 2021-09-17
+- 升级javacv1.5.6
+- 完善海康云台控制接口
+- 修复ffmpeg rtmp播放不了问题
+- 优化打包，移除不需要的平台（mac等），目前支持window、linux，包大小到100m内
 
 
 #### 更新说明 2021-07-16

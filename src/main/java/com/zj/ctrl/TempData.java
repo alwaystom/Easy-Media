@@ -58,4 +58,12 @@ public class TempData {
 		nativeLongMap.put(IPKey, myNativeLong);
 	}
 	
+	/**
+	 * 移除
+	 * @param IPKey
+	 */
+	public void removeNativeLong(String IPKey) {
+		nativeLongMap.remove(IPKey);
+	}
+	
 }
