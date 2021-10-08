@@ -390,7 +390,7 @@ public class MediaTransferFlvByFFmpeg extends MediaTransfer {
 							break;
 						}
 						if (enableLog) {
-							log.info("err: " + line);
+							log.info("ffmpeg: " + line);
 						}
 					}
 				} catch (IOException e) {
