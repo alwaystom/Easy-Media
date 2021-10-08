@@ -1,16 +1,13 @@
 package com.zj.thread;
 
-import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.util.Map.Entry;
-import java.util.concurrent.ConcurrentHashMap;
 
 import org.bytedeco.ffmpeg.avcodec.AVPacket;
 import org.bytedeco.ffmpeg.global.avcodec;
 import org.bytedeco.ffmpeg.global.avutil;
 import org.bytedeco.javacv.FFmpegFrameGrabber;
 import org.bytedeco.javacv.FFmpegFrameRecorder;
-import org.bytedeco.javacv.FFmpegLogCallback;
 import org.bytedeco.javacv.Frame;
 import org.bytedeco.javacv.FrameGrabber.Exception;
 
@@ -38,24 +35,12 @@ import lombok.extern.slf4j.Slf4j;
  * 转封装暂不支持hevc、vvc、vp8、vp9、g711、g771a等编码
  * </p>
  * <b> 转码累积延迟补偿暂未实现。</b> *
- * 由于转流过程中的拉流解码和编码是个线性串联链，多线程转码也不能解决该问题，后面可能需要采用主动跳包方式来解决 * * @author ZJ
- * * @author eguid
+ * 由于转流过程中的拉流解码和编码是个线性串联链，多线程转码也不能解决该问题，后面可能需要采用主动跳包方式来解决 
+ * @author ZJ
+ * @author eguid
  */
 @Slf4j
 public class MediaTransferFlvByJavacv extends MediaTransfer implements Runnable {
-	static {
-		avutil.av_log_set_level(avutil.AV_LOG_ERROR);
-		FFmpegLogCallback.set();
-	}
-
-	/**
-	 * ws客户端
-	 */
-	private ConcurrentHashMap<String, ChannelHandlerContext> wsClients = new ConcurrentHashMap<>();
-	/**
-	 * http客户端
-	 */
-	private ConcurrentHashMap<String, ChannelHandlerContext> httpClients = new ConcurrentHashMap<>();
 
 	/**
 	 * 运行状态
@@ -66,25 +51,8 @@ public class MediaTransferFlvByJavacv extends MediaTransfer implements Runnable 
 
 	private boolean recorderStatus = false;
 
-	/**
-	 * 当前在线人数
-	 */
-	private int hcSize, wcSize = 0;
-
-	/**
-	 * 用于没有客户端时候的计时
-	 */
-	private int noClient = 0;
-
-	/**
-	 * flv header
-	 */
-	private byte[] header = null;
-	// 输出流，视频最终会输出到此
-	private ByteArrayOutputStream bos = new ByteArrayOutputStream();
-
-	FFmpegFrameGrabber grabber;// 拉流器
-	FFmpegFrameRecorder recorder;// 推流录制器
+	private FFmpegFrameGrabber grabber;// 拉流器
+	private FFmpegFrameRecorder recorder;// 推流录制器
 
 	/**
 	 * true:转复用,false:转码
@@ -275,10 +243,12 @@ public class MediaTransferFlvByJavacv extends MediaTransfer implements Runnable 
 	 */
 	protected void transferStream2Flv() {
 		if (!createGrabber()) {
+			super.transferCallback.start(false);
 			return;
 		}
 		transferFlag = supportFlvFormatCodec();
 		if (!createTransterOrRecodeRecorder()) {
+			super.transferCallback.start(false);
 			return;
 		}
 
@@ -295,7 +265,8 @@ public class MediaTransferFlvByJavacv extends MediaTransfer implements Runnable 
 		}
 
 		running = true;
-
+		
+		super.transferCallback.start(true);
 		// 启动监听线程（用于判断是否需要自动关闭推流）
 		listenClient();
 

@@ -10,7 +10,6 @@ import com.zj.common.MediaConstant;
 import com.zj.dto.CameraDto;
 
 import cn.hutool.core.collection.CollUtil;
-import cn.hutool.crypto.digest.MD5;
 import lombok.extern.slf4j.Slf4j;
 
 /**
@@ -74,7 +73,7 @@ public class MediaTransferHls extends MediaTransfer {
 		command.add("-g");
 		command.add("25");
 		command.add("-c:v");
-		command.add("h264");	//javacv 1.5.5 无法使用libx264
+		command.add("libopenh264");	//javacv 1.5.5 无法使用libx264
 		command.add("-c:a");
 		command.add("aac");
 		command.add("-f");

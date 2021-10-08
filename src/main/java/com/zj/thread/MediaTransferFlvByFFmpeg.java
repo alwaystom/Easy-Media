@@ -1,7 +1,6 @@
 package com.zj.thread;
 
 import java.io.BufferedReader;
-import java.io.ByteArrayOutputStream;
 import java.io.DataInputStream;
 import java.io.IOException;
 import java.io.InputStreamReader;
@@ -12,7 +11,6 @@ import java.net.SocketTimeoutException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map.Entry;
-import java.util.concurrent.ConcurrentHashMap;
 
 import org.bytedeco.javacv.FrameGrabber.Exception;
 
@@ -44,19 +42,6 @@ import lombok.extern.slf4j.Slf4j;
 public class MediaTransferFlvByFFmpeg extends MediaTransfer {
 
 	/**
-	 * ws客户端
-	 */
-	private ConcurrentHashMap<String, ChannelHandlerContext> wsClients = new ConcurrentHashMap<>();
-	/**
-	 * http客户端
-	 */
-	private ConcurrentHashMap<String, ChannelHandlerContext> httpClients = new ConcurrentHashMap<>();
-
-	/**
-	 * flv header
-	 */
-	private byte[] header = null;
-	/**
 	 * 相机
 	 */
 	private CameraDto cameraDto;
@@ -73,15 +58,8 @@ public class MediaTransferFlvByFFmpeg extends MediaTransfer {
 	private boolean running = false; // 启动
 	private boolean enableLog = true;
 
-	private int hcSize, wcSize = 0;
-
 	// 记录当前
 	long currentTimeMillis = System.currentTimeMillis();
-
-	/**
-	 * 用于没有客户端时候的计时
-	 */
-	private int noClient = 0;
 
 	public MediaTransferFlvByFFmpeg(final String executable) {
 		command.add(executable);
@@ -233,7 +211,7 @@ public class MediaTransferFlvByFFmpeg extends MediaTransfer {
 
 					byte[] buffer = new byte[1024];
 					int len = 0;
-					ByteArrayOutputStream bos = new ByteArrayOutputStream();
+//					ByteArrayOutputStream bos = new ByteArrayOutputStream();
 					while (running) {
 
 						len = input.read(buffer);
