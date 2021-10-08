@@ -243,12 +243,12 @@ public class MediaTransferFlvByJavacv extends MediaTransfer implements Runnable 
 	 */
 	protected void transferStream2Flv() {
 		if (!createGrabber()) {
-			super.transferCallback.start(false);
+//			super.transferCallback.start(false);
 			return;
 		}
 		transferFlag = supportFlvFormatCodec();
 		if (!createTransterOrRecodeRecorder()) {
-			super.transferCallback.start(false);
+//			super.transferCallback.start(false);
 			return;
 		}
 
@@ -266,7 +266,7 @@ public class MediaTransferFlvByJavacv extends MediaTransfer implements Runnable 
 
 		running = true;
 		
-		super.transferCallback.start(true);
+//		super.transferCallback.start(true);
 		// 启动监听线程（用于判断是否需要自动关闭推流）
 		listenClient();
 
