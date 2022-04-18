@@ -123,6 +123,7 @@ public class MediaTransferFlvByJavacv extends MediaTransfer implements Runnable 
 		grabber.setOption("probesize", cameraDto.getReadOrWriteTimeout());
 		// 解析视频流信息，为空默认5000000微秒
 		grabber.setOption("analyzeduration", cameraDto.getReadOrWriteTimeout());
+		grabber.setAudioStream(Integer.MAX_VALUE);
 
 		// 如果为rtsp流，增加配置
 		if ("rtsp".equals(cameraDto.getUrl().substring(0, 4))) {
@@ -183,6 +184,8 @@ public class MediaTransferFlvByJavacv extends MediaTransfer implements Runnable 
 			recorder.setPixelFormat(avutil.AV_PIX_FMT_YUV420P);
 			recorder.setAudioCodec(avcodec.AV_CODEC_ID_AAC);
 //			recorder.setAudioCodecName("aac");
+			recorder.setOption("keyint_min", "25");	//gop最小间隔
+			
 			/**
 			 * 启用RDOQ算法，优化视频质量 1：在视频码率和视频质量之间取得平衡 2：最大程度优化视频质量（会降低编码速度和提高码率）
 			 */
@@ -230,12 +233,13 @@ public class MediaTransferFlvByJavacv extends MediaTransfer implements Runnable 
 	 * @return
 	 */
 	private boolean supportFlvFormatCodec() {
+		int audioChannels = grabber.getAudioChannels();
 		int vcodec = grabber.getVideoCodec();
 		int acodec = grabber.getAudioCodec();
 		return (cameraDto.getType() == 0)
 				&& ("desktop".equals(cameraDto.getUrl()) || avcodec.AV_CODEC_ID_H264 == vcodec
 						|| avcodec.AV_CODEC_ID_H263 == vcodec)
-				&& (avcodec.AV_CODEC_ID_AAC == acodec || avcodec.AV_CODEC_ID_AAC_LATM == acodec);
+				&& (audioChannels == 0 || avcodec.AV_CODEC_ID_AAC == acodec || avcodec.AV_CODEC_ID_AAC_LATM == acodec);
 	}
 
 	/**

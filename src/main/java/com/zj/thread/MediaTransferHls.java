@@ -66,7 +66,12 @@ public class MediaTransferHls extends MediaTransfer {
 	private void buildCommand() {
 		
 		command.add(System.getProperty(MediaConstant.ffmpegPathKey));
-        command.add("-re"); // 解决文件分片速度过快导致前端跳帧问题
+        
+		// 本地文件 解决文件分片速度过快导致前端跳帧问题
+		if(cameraDto.getType() == 1) {
+			command.add("-re"); 
+		}
+		
 		command.add("-i");
 		command.add(cameraDto.getUrl());
 		command.add("-r");

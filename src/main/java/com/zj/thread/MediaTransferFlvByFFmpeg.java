@@ -124,6 +124,11 @@ public class MediaTransferFlvByFFmpeg extends MediaTransfer {
 		if ("rtsp".equals(cameraDto.getUrl().substring(0, 4))) {
 			this.addArgument("-rtsp_transport").addArgument("tcp");
 		}
+		//如果是本地文件
+		if(cameraDto.getType() == 1) {
+			this.addArgument("-re");
+		}
+		
 		this.addArgument("-i").addArgument(cameraDto.getUrl())
 				.addArgument("-max_delay").addArgument("1")
 //		.addArgument("-strict").addArgument("experimental")
