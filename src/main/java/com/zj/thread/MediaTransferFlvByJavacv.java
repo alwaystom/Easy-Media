@@ -123,7 +123,9 @@ public class MediaTransferFlvByJavacv extends MediaTransfer implements Runnable 
 		grabber.setOption("probesize", cameraDto.getReadOrWriteTimeout());
 		// 解析视频流信息，为空默认5000000微秒
 		grabber.setOption("analyzeduration", cameraDto.getReadOrWriteTimeout());
-		grabber.setAudioStream(Integer.MAX_VALUE);
+		
+		//针对某些协议或数据有问题的流，一起动就关闭，可以尝试下面参数
+//		grabber.setAudioStream(1);
 
 		// 如果为rtsp流，增加配置
 		if ("rtsp".equals(cameraDto.getUrl().substring(0, 4))) {
