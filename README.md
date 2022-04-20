@@ -8,22 +8,24 @@ Springboot、netty实现的http-flv、websocket-flv流媒体服务（可用于�
 > 距离上次更新已经时隔半年多了，由于业余时间还有其他事要做，此1.x版本到此不再维护了，但是依旧抽空在写2.0版本，重新封装了一下，封装成player这种形式（类似一些播放器api）、对线程、稳定性还有hls做了优化，后续尽快会发布2.0版本。
 
 > 有些人的编码不是h264 aac，强烈建议把视频流换成这个，因为可以转封装，延迟低（1s内）、cpu占用低（几乎不怎么占用）
-如果是其他编码比如h265 pcm会进行转码，有些流不是标准rtsp视频协议或者的数据不完整，转码的时候会出现异常，转码会消耗cpu、并且延迟在5s内
+如果是其他编码比如h265 pcm会进行转码，有些流不是标准rtsp视频协议或者的数据不完整，转码的时候会出现异常，转码会消耗cpu、并且延迟在5s内（最新版的特性延迟更低，本人亲测h265的相机即便转码延迟也就2s）
 
 > 有时候因为网络异常断开，这种情况怎么处理，由于重连是客户端做的事情，所以可以参考 https://blog.csdn.net/Janix520/article/details/119567408 
 
 
 
-前端源码可以从群中获取
+##最新成品下载（支持window、linux，mac用户修改pom依赖，自行编译，如需云台，sdk放在jar同级目录即可）
+链接: https://pan.baidu.com/s/1IUhZz4fGbHWnwl2m42yPiA 提取码: c5bm 复制这段内容后打开百度网盘手机App，操作更方便哦 
+--来自百度网盘超级会员v5的分享
+
+```
+//自行打包
+mvn clean package -Dmaven.test.skip=true
+```
+
+前端源码也可以从群中获取
 QQ交流群 873959305
 
-
-[成品下载-7.16，此版本已不是最新，新版本请自行下载编译](https://pan.baidu.com/s/1kx3pwYVG_HfAt8JmQti86g "成品下载-7.16，此版本已不是最新，新版本请自行下载编译")
-
-
-链接：https://pan.baidu.com/s/1kx3pwYVG_HfAt8JmQti86g 
-提取码：kvuj 
---来自百度网盘超级会员V4的分享
 
 [前端源码传送门](https://download.csdn.net/download/Janix520/15785632 "前端源码传送门")
 
