@@ -33,6 +33,59 @@ QQ交流群 873959305
 [前端源码传送门](https://download.csdn.net/download/Janix520/15785632 "前端源码传送门")
 
 
+#### 构建 基于 Oracle-jdk 8 的 Maven 镜像
+
+```dockerfile
+
+FROM centos:7.9.2009
+# java
+ARG JAVA_VERSIOIN=1.8.0
+SHELL ["/bin/bash", "-c"]
+ENV BASH_ENV ~/.bashrc
+ENV JAVA_HOME /usr/local/jdk-${JAVA_VERSIOIN}
+ENV PATH ${JAVA_HOME}/bin:$PATH
+
+RUN \
+  # Install JDK
+  if [ "$JAVA_VERSIOIN" == "1.8.0" ]; \
+  then \
+    yum -y remove java-1.8.0-openjdk \
+    && curl -fSL https://files-cdn.liferay.com/mirrors/download.oracle.com/otn-pub/java/jdk/8u121-b13/jdk-8u121-linux-x64.tar.gz -o openjdk.tar.gz \
+    && mkdir -pv /usr/local/jdk-1.8.0 && tar -zxvf openjdk.tar.gz -C /usr/local/jdk-1.8.0 --strip-components 1 \
+    && rm -f openjdk.tar.gz \
+    && echo "export JAVA_HOME=/usr/local/jdk-${JAVA_VERSIOIN}" >> ~/.bashrc \
+    && echo "export PATH=\"/usr/local/jdk-${JAVA_VERSIOIN}/bin:$PATH\"" >> ~/.bashrc \
+    && echo "export JAVA_HOME PATH " >> ~/.bashrc  \
+    && cat ~/.bashrc  \
+    && source ~/.bashrc ; \
+  fi \
+    # Test install
+    && ls -l /usr/local/ \
+    && javac -version
+
+ARG MAVEN_VERSION=3.5.3
+ENV M2_HOME /opt/apache-maven-$MAVEN_VERSION
+ENV JAVA_HOME /usr/local/jdk-${JAVA_VERSIOIN}
+ENV maven.home $M2_HOME
+ENV M2 $M2_HOME/bin
+ENV PATH $M2:$PATH:JAVA_HOME/bin
+RUN curl -f -L https://archive.apache.org/dist/maven/maven-3/$MAVEN_VERSION/binaries/apache-maven-$MAVEN_VERSION-bin.tar.gz | tar -C /opt -xzv  \
+    && rm -f gradle.zip  \
+    && echo "export M2_HOME=/opt/apache-maven-${MAVEN_VERSION}" >> ~/.bashrc  \
+    && echo "export MAVEN_HOME=${M2_HOME}" >> ~/.bashrc  \
+    && echo "export M2=${M2_HOME}/bin" >> ~/.bashrc  \
+    && echo "export PATH=\"$M2:$PATH:JAVA_HOME/bin\"" >> ~/.bashrc  \
+    && echo "export M2_HOME MAVEN_HOME M2 PATH " >> ~/.bashrc  \
+    && cat ~/.bashrc  \
+    && source ~/.bashrc \
+    && ls -l /opt \
+    && mvn -v \
+
+CMD ["mvn","-version"]
+
+```
+
+
 #### 功能汇总 （不知道怎么使用的可以直接看wiki，简洁明了）
 - 支持播放 rtsp、rtmp、http、文件等流……
 - pc端桌面投影
