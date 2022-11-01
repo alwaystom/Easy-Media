@@ -30,12 +30,15 @@ public class CtrlSessionListener implements HttpSessionListener {
 		HttpSession session = event.getSession();
 		
 		String ip = Convert.toStr(session.getAttribute("ip"));
+		String port = Convert.toStr(session.getAttribute("port"));
 		if(ip != null) {
-			MyNativeLong nativeLong = TempData.getTempData().getNativeLong(ip);
-			boolean net_DVR_Logout = LoginPlay.hCNetSDK.NET_DVR_Logout(nativeLong.getlUserID());
-			if (net_DVR_Logout) {
-				//退出登入成功
-				TempData.getTempData().removeNativeLong(ip);
+			MyNativeLong nativeLong = TempData.getTempData().getNativeLong(ip, Integer.valueOf(port));
+			if (nativeLong != null) {
+				boolean net_DVR_Logout = LoginPlay.hCNetSDK.NET_DVR_Logout(nativeLong.getlUserID());
+				if (net_DVR_Logout) {
+					//退出登入成功
+					TempData.getTempData().removeNativeLong(ip);
+				}
 			}
 		}
 		

@@ -69,11 +69,11 @@ public class LoginPlay {
 		}
 		
 		// 获取设备预览句柄
-		NativeLong lRealHandle = play(chan);
+//		NativeLong lRealHandle = play(chan);
 		// 获取设备通道句柄
 		NativeLong lChannel = new NativeLong(chan);
 		// 保存到缓存中, 下次不必再进行登录操作
-		TempData.getTempData().setNativeLong(ip, lUserID, lRealHandle, lChannel);
+		TempData.getTempData().setNativeLong(ip, port, lUserID, null, lChannel);
 		
 		return true;
 	}
@@ -83,6 +83,10 @@ public class LoginPlay {
 	 * @return
 	 */
 	public boolean doLogout() {
+		return doLogout(lUserID);
+	}
+
+	public static boolean doLogout(NativeLong lUserID) {
 		boolean net_DVR_Logout = hCNetSDK.NET_DVR_Logout(lUserID);
 		if (net_DVR_Logout) {
 			return true;

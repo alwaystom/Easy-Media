@@ -13,22 +13,24 @@ public class Main {
 		
 		// 创建登录对象
 		LoginPlay lp = new LoginPlay();
+		String ip = "";
+		short port = 0;
 		// 输入摄像机ip，端口，账户，密码登录
-		lp.doLogin("192.168.106.151", (short)8000, "admin", "vms@1803");
+		lp.doLogin(ip, port, "admin", "bim654321");
 			
 		// 截取摄像机实时图片
 //		boolean imgSavePath = Control.getImgSavePath("192.168.106.151", "D:\\tempFile\\4.jpg");
 		
 		// 制摄像机云台控制(开启)
-		Control.cloudControl("192.168.106.151", CloudCode.PAN_RIGHT, CloudCode.SPEED_LV6, CloudCode.START);
+		Control.cloudControl(ip, port, CloudCode.PAN_RIGHT, CloudCode.SPEED_LV6, CloudCode.START);
 		try {
 			// 让云台运行1000ms
-			Thread.sleep(1000);
+			Thread.sleep(2000);
 		} catch (InterruptedException e) {
 			e.printStackTrace();
 		}
 		// 制摄像机云台控制(关闭)
-		Control.cloudControl("192.168.106.151", CloudCode.PAN_RIGHT, CloudCode.SPEED_LV6, CloudCode.END);
+		Control.cloudControl(ip, port, CloudCode.PAN_RIGHT, CloudCode.SPEED_LV6, CloudCode.END);
 //		
 //		System.out.println(imgSavePath);
 		

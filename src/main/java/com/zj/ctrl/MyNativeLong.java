@@ -35,7 +35,9 @@ public class MyNativeLong {
 	 * 是否正在使用
 	 */
 	private boolean isUse;
-	
+
+	private long createdTime = System.currentTimeMillis();
+
 	/**
 	 * 开始控制摄像头,设置使用时间,正在使用中
 	 */
@@ -90,5 +92,8 @@ public class MyNativeLong {
 	public void setUse(boolean isUse) {
 		this.isUse = isUse;
 	}
-	
+
+	public long getCreatedTime() {
+		return createdTime;
+	}
 }

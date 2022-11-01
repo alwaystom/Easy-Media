@@ -1,12 +1,14 @@
 package com.zj.ctrl;
 
 import com.sun.jna.NativeLong;
+import lombok.extern.slf4j.Slf4j;
 
 /**
  * 摄像头控制
  * @author ZJ
  *
  */
+@Slf4j
 public class Control {
 	
 	private static HCNetSDK hCNetSDK = LoginPlay.hCNetSDK;
@@ -20,7 +22,7 @@ public class Control {
 	 */
 	public static boolean getImgSavePath(String ip, String path) {
 		//获取ip对应摄像头的句柄
-		MyNativeLong nativeLong = TempData.getTempData().getNativeLong(ip);
+		MyNativeLong nativeLong = TempData.getTempData().getNativeLong(ip, 0);
 		if (nativeLong == null) {
 			return false;
 		}
@@ -46,25 +48,30 @@ public class Control {
 	 * @param iStop 是否为停止操作
 	 * @return
 	 */
-	public static boolean cloudControl(String ip, CloudCode iCommand, CloudCode iSpeed, CloudCode iStop) {
+	public static boolean cloudControl(String ip, int port, CloudCode iCommand, CloudCode iSpeed, CloudCode iStop) {
 		//获取ip对应摄像头的句柄
-		MyNativeLong nativeLong = TempData.getTempData().getNativeLong(ip);
+		MyNativeLong nativeLong = TempData.getTempData().getNativeLong(ip, port);
 		if (nativeLong == null) {
+			log.error("无法获取句柄");
 			return false;
 		}
 		
 		//获取预览句柄
-		NativeLong lRealHandle = nativeLong.getlRealHandle();
-		if (lRealHandle.intValue() < 0) {
-			return false;
-		}
+//		NativeLong lRealHandle = nativeLong.getlRealHandle();
+//		if (lRealHandle.intValue() < 0) {
+//			log.error("无法获取预览句柄");
+//			return false;
+//		}
 		
 		//判断是否为停止操作
 		if (iSpeed.getKey() == 1) {
-			return hCNetSDK.NET_DVR_PTZControl(lRealHandle, iCommand.getKey(), iStop.getKey());
+			return hCNetSDK.NET_DVR_PTZControl_Other(nativeLong.getlUserID(), nativeLong.getlChannel(), iCommand.getKey(), iStop.getKey());
 		}
-		
-		return hCNetSDK.NET_DVR_PTZControlWithSpeed(lRealHandle, iCommand.getKey(), iStop.getKey(), iSpeed.getKey());
+		boolean b = hCNetSDK.NET_DVR_PTZControlWithSpeed_Other(nativeLong.getlUserID(), nativeLong.getlChannel(), iCommand.getKey(), iStop.getKey(), iSpeed.getKey());
+		if (!b) {
+			log.error("云台操作失败：" + ip + ":" + port + "  " + iCommand.getKey() + "   handle:" + nativeLong.getlUserID());
+		}
+		return b;
 	}
 	
 	/**
@@ -75,9 +82,9 @@ public class Control {
 	 * @param iStop
 	 * @return
 	 */
-	public static NativeLong realPlay(String ip) {
+	public static NativeLong realPlay(String ip, int port) {
 		//获取ip对应摄像头的句柄
-		MyNativeLong nativeLong = TempData.getTempData().getNativeLong(ip);
+		MyNativeLong nativeLong = TempData.getTempData().getNativeLong(ip, port);
 		if (nativeLong == null) {
 			return null;
 		}

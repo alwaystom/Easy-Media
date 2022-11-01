@@ -18,7 +18,7 @@ public class TempData {
 	private static TempData tempData = null;
 	
 	private Map<String, MyNativeLong> nativeLongMap;
-	
+
 	public static TempData getTempData(){
 		if(tempData == null){
 			tempData = new TempData();
@@ -33,8 +33,18 @@ public class TempData {
 	 * 
 	 * @return
 	 */
-	public MyNativeLong getNativeLong(String IPKey){
-		return nativeLongMap.get(IPKey);
+	public MyNativeLong getNativeLong(String ipPortKey, int port){
+		MyNativeLong myNativeLong = nativeLongMap.get(ipPortKey + ":" + port);
+		Date now = new Date();
+		if (myNativeLong != null
+				&& System.currentTimeMillis() - myNativeLong.getCreatedTime() <= 1000 * 60 * 5) {
+			return myNativeLong;
+		} else {
+			if (myNativeLong != null) {
+				LoginPlay.doLogout(myNativeLong.getlUserID());
+			}
+			return null;
+		}
 	}
 	
 	/**
@@ -45,7 +55,7 @@ public class TempData {
 	 * @param lRealHandle 预览句柄
 	 * @param lChannel 通道句柄
 	 */
-	public void setNativeLong(String IPKey, NativeLong lUserID, NativeLong lRealHandle, NativeLong lChannel){
+	public void setNativeLong(String IPKey, int port, NativeLong lUserID, NativeLong lRealHandle, NativeLong lChannel){
 		MyNativeLong myNativeLong = new MyNativeLong();
 		
 		myNativeLong.setlUserID(lUserID);
@@ -55,7 +65,7 @@ public class TempData {
 		myNativeLong.setUse(true);
 		myNativeLong.setLastUse(new Date());
 		
-		nativeLongMap.put(IPKey, myNativeLong);
+		nativeLongMap.put(IPKey + ":" + port, myNativeLong);
 	}
 	
 	/**

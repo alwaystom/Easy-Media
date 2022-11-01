@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="utf-8">
+    <meta name=viewport content="width=device-width,initial-scale=1,maximum-scale=1,minimum-scale=1,user-scalable=no,minimal-ui">
+    <meta name="referrer" content="no-referrer">
+    <title>视频直播</title>
+    <style type="text/css">
+        html, body {width:100%;height:100%;margin:auto;overflow: hidden;}
+    </style>
+</head>
+<body>
+<div id="mse"></div>
+<script src="./js/xgplayer.js" charset="utf-8"></script>
+<script src="./js/xgplayer-flv.js" charset="utf-8"></script>
+<script src="./js/axios.js" charset="utf-8"></script>
+
+<script th:inline="javascript">
+    // const axios = require('axios');
+    // const urlContext = "http://192.168.14.31:8888";
+
+    // axios.get(urlContext + "/add?url")
+
+    // 使用方法： http://192.168.14.31:8889/playerIframe.html?stream=ws://127.0.0.1:8866/live?url=rtsp://admin:wls771102@192.168.14.180:554/Streaming/Channels/2
+
+    const playerUrl = window.location.href.split("?stream=")[1];
+    let player = null
+
+    initPlayer()
+    function initPlayer() {
+        if (player != null) {
+            player.destroy(false)
+        }
+        player = new FlvJsPlayer({
+            "id": "mse",
+            "playsinline": true,
+            "whitelist": [
+                ""
+            ],
+            fluid:true,  // 使用流布局，可使播放器宽度跟随父元素的宽度大小变化
+            fitVideoSize: 'auto', // 宽高自适应
+            autoplay: true,
+            isLive: true,
+            autoplayMuted: true,
+            controls: false,
+            closeVideoClick: true,  // 禁止点击视频后暂停
+            closeVideoTouch: true,
+            flvOptionalConfig: {
+                enableStashBuffer: false,
+                deferLoadAfterSourceOpen: false,
+                autoCleanupSourceBuffer: true,
+            },
+            // url: 'ws://192.168.14.41:8080/rtp/44010200491320000211_44010200491320000211.live.flv'
+            url: playerUrl
+        });
+        setInterval(checkHealth, 1000)
+    }
+
+    let timer
+
+    function checkHealth() {
+        console.log("-------------------------------")
+        console.log("是否开始播放" + player.hasStart)
+        console.log("是否暂停" + player.paused)
+        console.log("是否结束" + player.ended)
+    }
+
+    function addEvent() {
+        // player.on('ended',function(){
+        //     console.log("结束")
+        //     timer = setInterval(() => {
+        //         console.log("重连")
+        //         try {
+        //             initPlayer()
+        //         } catch (e) {
+        //
+        //         }
+        //     }, 5000)
+        // })
+        // player.on('error',function(){
+        //     console.log("错误")
+        //     timer = setInterval(() => {
+        //         console.log("重连")
+        //         try {
+        //             initPlayer()
+        //         } catch (e) {
+        //
+        //         }
+        //     }, 5000)
+        // })
+        // player.on('play',function(){
+        //     console.log("播放")
+        //     clearInterval(timer)
+        // })
+        // player.on('playing',function(){
+        //     console.log("继续播放")
+        // })
+    }
+
+
+    // console.log(getQueryStringArgs())
+    // function getQueryStringArgs(){
+    //
+    //     const res = {};
+    //     //预防 URL 是经过 encodeURIComponent 编码，先进行一次解码,变成标准的URL
+    //     let strs = decodeURIComponent(window.location.href);
+    //     //判断URL是否有查询串
+    //     if(strs.lastIndexOf("?") == -1){
+    //         return res;
+    //     }else{
+    //         strs = strs.slice(strs.lastIndexOf("?")+1); //获取 ? 之后的字符串
+    //     }
+    //     //分割字符串为 [ [ 'name', 'ståle' ], [ 'age', '23' ] ] 格式
+    //     const strArr = strs.split("&").map(item => item.split("="));
+    //     strArr.forEach(item =>{
+    //         res[item[0]] = item[1];
+    //     })
+    //     return res;
+    // }
+</script>
+</body>
+</html>

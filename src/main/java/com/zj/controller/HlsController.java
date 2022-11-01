@@ -5,6 +5,7 @@ import java.io.IOException;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
+import com.zj.thread.MediaTransferHls;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -71,20 +72,17 @@ public class HlsController {
 	@RequestMapping("ts/{cameraId}/{tsName}")
 	public void getts(HttpServletResponse response, @PathVariable("cameraId") String mediaKey,
 			@PathVariable("tsName") String tsName) throws IOException {
-		
 		String tsKey = mediaKey.concat("-").concat(tsName);
-		byte[] bs = HlsService.cacheTs.get(tsKey);
+		byte[] bs = hlsService.getTs(tsKey);
 		if(null == bs) {
 			response.setContentType("application/json");
 			response.getOutputStream().write("尚未生成ts".getBytes("utf-8"));
 			response.getOutputStream().flush();
-			return;
 		} else {
 			response.getOutputStream().write(bs);
 			response.setContentType("video/mp2t");
 			response.getOutputStream().flush();
 		}
-		
 	}
 	
 	/**
@@ -102,8 +100,22 @@ public class HlsController {
 			String mediaKey = MD5.create().digestHex(cameraDto.getUrl());
 			byte[] hls = HlsService.cacheM3u8.get(mediaKey);
 			if(null == hls) {
-				response.setContentType("application/json");
-				response.getOutputStream().write("尚未生成m3u8".getBytes("utf-8"));
+				// 没有hls索引信息，先看看是否已经开启hls切片了
+				MediaTransferHls camera = HlsService.cameras.get(cameraDto.getUrl());
+				if (camera == null) {
+					// 未开启HLS切片，手动开启
+					hlsService.startConvertToHls(cameraDto);
+				}
+                // 构建一个虚假的索引，防止播放器因为请求不到索引就停止。
+                // 虽然播放器请求的ts是404，但是播放器会请求新的索引，一旦分片存储完成，此方法就会返回正确的索引
+                String emptyResponse = "#EXTM3U\n" +
+                        "#EXT-X-VERSION:3\n" +
+                        "#EXT-X-TARGETDURATION:1\n" +
+                        "#EXT-X-MEDIA-SEQUENCE:31\n" +
+                        "#EXTINF:1.000000,\n" +
+                        "/ts/empty/empty.ts";
+				response.setContentType("application/vnd.apple.mpegurl");// application/x-mpegURL //video/mp2t ts;
+				response.getOutputStream().write(emptyResponse.getBytes("utf8"));
 				response.getOutputStream().flush();
 			} else {
 				response.setContentType("application/vnd.apple.mpegurl");// application/x-mpegURL //video/mp2t ts;
@@ -111,7 +123,6 @@ public class HlsController {
 				response.getOutputStream().flush();
 			}
 		}
-
 	}
 	
 	/**

@@ -3,6 +3,7 @@ package com.zj.thread;
 import java.io.IOException;
 import java.util.Map.Entry;
 
+import cn.hutool.core.thread.ThreadUtil;
 import org.bytedeco.ffmpeg.avcodec.AVPacket;
 import org.bytedeco.ffmpeg.global.avcodec;
 import org.bytedeco.ffmpeg.global.avutil;
@@ -22,6 +23,7 @@ import io.netty.handler.codec.http.websocketx.BinaryWebSocketFrame;
 import io.netty.util.concurrent.Future;
 import io.netty.util.concurrent.GenericFutureListener;
 import lombok.extern.slf4j.Slf4j;
+import org.bytedeco.javacv.IPCameraFrameGrabber;
 
 /**
  * <b>支持转复用或转码线程<b> <b> 什么情况下会转复用?</b>
@@ -69,6 +71,24 @@ public class MediaTransferFlvByJavacv extends MediaTransfer implements Runnable 
 	 */
 	private Thread listenThread;
 
+    /**
+     * 拉流器监听线程，某些情况下网络临时断开后再重连，拉流器可能无法继续拉流（表现为帧长度总是为0）
+     * 这个线程用来监听这种情况，并重启拉流器
+     */
+    private Thread grabberListenThread;
+
+    /**
+     * 最后一帧的获取时间戳
+     */
+    private long lastFrameCount;
+
+    /**
+     * 同步线程，每隔一段时间同步一下拉流器，消除摄像头与拉流器之间的累积延时
+     */
+	private Thread syncThread;
+
+//	private String liveResource;
+
 	/**
 	 * @param cameraDto
 	 * @param autoClose 流是否可以自动关闭
@@ -110,6 +130,7 @@ public class MediaTransferFlvByJavacv extends MediaTransfer implements Runnable 
 	protected boolean createGrabber() {
 		// 拉流器
 		grabber = new FFmpegFrameGrabber(cameraDto.getUrl());
+//		new IPCameraFrameGrabber(cameraDto.getUrl());
 		// 超时时间(15秒)
 		grabber.setOption("stimeout", cameraDto.getNetTimeout());
 		grabber.setOption("threads", "1");
@@ -154,6 +175,7 @@ public class MediaTransferFlvByJavacv extends MediaTransfer implements Runnable 
 		} catch (Exception e) {
 			MediaService.cameras.remove(cameraDto.getMediaKey());
 			log.error("\r\n{}\r\n启动拉流器失败，网络超时或视频源不可用", cameraDto.getUrl());
+			closeMedia();
 //			e.printStackTrace();
 		}
 		return grabberStatus = false;
@@ -269,6 +291,8 @@ public class MediaTransferFlvByJavacv extends MediaTransfer implements Runnable 
 //		super.transferCallback.start(true);
 		// 启动监听线程（用于判断是否需要自动关闭推流）
 		listenClient();
+        startSynvThread();
+        grabberListenThread();  // 拉流器断链监听线程
 
 		// 时间戳计算
 		long startTime = 0;
@@ -280,11 +304,10 @@ public class MediaTransferFlvByJavacv extends MediaTransfer implements Runnable 
 //		long processTime = 0;// 上一帧处理耗时，用于延迟时间补偿，处理耗时不算进累积延迟
 
 		for (; running && grabberStatus && recorderStatus;) {
-
+            long startGrab = System.currentTimeMillis();
 			try {
 				if (transferFlag) {
 					// 转复用
-					long startGrab = System.currentTimeMillis();
 					AVPacket pkt = grabber.grabPacket();
 					if ((System.currentTimeMillis() - startGrab) > 5000) {
 //						doReConnect();
@@ -309,8 +332,9 @@ public class MediaTransferFlvByJavacv extends MediaTransfer implements Runnable 
 					}
 				} else {
 					// 转码
-					long startGrab = System.currentTimeMillis();
+//					long startGrab = System.currentTimeMillis();
 					Frame frame = grabber.grab(); // 这边判断相机断网，正常50左右，断线15000
+//                    Frame frame = grabber.grabImage();
 					if ((System.currentTimeMillis() - startGrab) > 5000) {
 //						doReConnect();
 //						continue;
@@ -337,15 +361,18 @@ public class MediaTransferFlvByJavacv extends MediaTransfer implements Runnable 
 			} catch (Exception e) {
 				grabberStatus = false;
 				MediaService.cameras.remove(cameraDto.getMediaKey());
+				log.error("", e);
 			} catch (org.bytedeco.javacv.FrameRecorder.Exception e) {
 				recorderStatus = false;
 				MediaService.cameras.remove(cameraDto.getMediaKey());
-			}
+                log.error("", e);
+            }
 
+			log.info("帧长度：" + bos.size());
 			if (bos.size() > 0) {
+			    this.lastFrameCount = startGrab;
 				byte[] b = bos.toByteArray();
 				bos.reset();
-
 				// 发送视频到前端
 				sendFrameData(b);
 			}
@@ -412,7 +439,6 @@ public class MediaTransferFlvByJavacv extends MediaTransfer implements Runnable 
 	 * @return
 	 */
 	public void hasClient() {
-
 		int newHcSize = httpClients.size();
 		int newWcSize = wsClients.size();
 		if (hcSize != newHcSize || wcSize != newWcSize) {
@@ -457,6 +483,41 @@ public class MediaTransferFlvByJavacv extends MediaTransfer implements Runnable 
 		});
 		listenThread.start();
 	}
+
+    public void grabberListenThread() {
+        grabberListenThread = new Thread(new Runnable() {
+            public void run() {
+                while (running) {
+                    long current = System.currentTimeMillis();
+                    if (lastFrameCount != 0 && current - lastFrameCount >= 1000 * 10) {
+                        log.error("拉流器未响应"+ cameraDto.getUrl() + ", 关闭所有会话");
+                        closeMedia();
+                    }
+                    ThreadUtil.sleep(1000);
+                }
+            }
+        });
+        grabberListenThread.start();
+    }
+
+	private void startSynvThread() {
+//        syncThread = new Thread(new Runnable() {
+//            public void run() {
+//                while (running) {
+//                    try {
+//                        grabber.flush();
+//                    } catch (Exception e) {
+//                        e.printStackTrace();
+//                    }
+//                    try {
+//                        Thread.sleep(1000 * 10);
+//                    } catch (InterruptedException e) {
+//                    }
+//                }
+//            }
+//        });
+//        syncThread.start();
+    }
 
 	/**
 	 * 重连，目前重连有些问题，停止后时间戳也变化了，发现相机连不上先直接断开，清除缓存，后续再优化

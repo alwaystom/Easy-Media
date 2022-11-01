@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="utf-8">
+    <meta name=viewport content="width=device-width,initial-scale=1,maximum-scale=1,minimum-scale=1,user-scalable=no,minimal-ui">
+    <meta name="referrer" content="no-referrer">
+    <title>视频直播</title>
+    <style type="text/css">
+        html, body {width:100%;height:100%;margin:auto;overflow: hidden;}
+    </style>
+</head>
+<body>
+<div id="mse" style="width: 100%; height: 100%"></div>
+<script src="//unpkg.byted-static.com/xgplayer/2.31.6/browser/index.js" charset="utf-8"></script>
+<script src="//unpkg.byted-static.com/xgplayer-hls.js/2.2.2/browser/index.js" charset="utf-8"></script>
+<script src="https://cdn.staticfile.org/jquery/1.10.2/jquery.min.js"></script>
+<script>
+    let player = null
+    let waittingTimes = 0
+    // 最近一次缓冲数据的时间
+    let lastBufferedTime =  Date.parse(new Date());
+    let checkHealthTimer
+
+    initPlayer()
+    function initPlayer() {
+        player = new HlsJsPlayer({
+            "id": "mse",
+            "url": getQueryString("stream"),
+            "playsinline": true,
+            "whitelist": [
+                ""
+            ],
+            closeVideoClick: true,  // 禁止点击视频后暂停
+            autoplay: true,
+            isLive: true,
+            volume: 0,          // 只有静音才可以自动播放
+            "fluid": true
+            // "fitVideoSize": 'fixHeight'
+        });
+        // player.on('waiting',function(){
+        //     console.log('加载中')
+        //     waittingTimes ++
+        //     // if (waittingTimes >= 3) {
+        //     //     location.reload();
+        //     // }
+        // })
+        // player.on('pause',function(){
+        //     console.log('暂停')
+        // })
+        // player.on('playing',function(){
+        //     console.log('继续播放')
+        // })
+        player.on('bufferedChange',function(bytes){
+            lastBufferedTime = Date.parse(new Date());
+        })
+        checkHealthTimer = setInterval(checkHealth, 1000)
+    }
+    function getQueryString(name) {
+        var reg = new RegExp('(^|&)' + name + '=([^&]*)(&|$)', 'i');
+        //正则解释：()为分组，是哪个括号三个分组，|表示或者关系，[^&]表示不含&符号，'i'为忽略大小写参数
+        var r = window.location.search.substr(1).match(reg);
+        if (r != null) {
+            return unescape(r[2]); //unescape()将url编码字符串转换为正常编码。
+        }
+        return null;
+    }
+
+
+    function checkHealth() {
+        // console.log("-------------------------------")
+        // console.log("是否开始播放" + player.hasStart)
+        // console.log("是否暂停" + player.paused)
+        // console.log("是否结束" + player.ended)
+        // console.log("就绪状态" + player.readyState)
+        // console.log("缓冲池" + player.buffered.length)
+        // 超过10s未缓冲任何数据，认为已经断线，刷新页面
+        console.log(Date.parse(new Date()) - lastBufferedTime)
+        if (Date.parse(new Date()) - lastBufferedTime > 1000 * 10) {
+            clearInterval(checkHealthTimer)
+            console.log("刷新重连")
+            location.reload()
+        }
+    }
+</script>
+</body>
+</html>

@@ -64,8 +64,9 @@ public class MediaTransferHls extends MediaTransfer {
 	 * String cmd = "ffmpeg -i rtsp://admin:VZCDOY@192.168.2.120:554/Streaming/Channels/102 -r 25 -g 25 -c:v libx264 -c:a aac -f hls -hls_list_size 1 -hls_wrap 6 -hls_time 1 -hls_base_url /ts/"+22+"/ -method put http://localhost:8888/record/"+22+"/out.m3u8";
 	 */
 	private void buildCommand() {
-		
 		command.add(System.getProperty(MediaConstant.ffmpegPathKey));
+		command.add("-rtsp_transport"); // 强制使用TCP，lanproxy内网穿透平台只支持tcp转发，使用udp的话没东西的
+		command.add("tcp");
 		command.add("-i");
 		command.add(cameraDto.getUrl());
 		command.add("-r");

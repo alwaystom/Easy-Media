@@ -20,7 +20,8 @@ public class GlobalExceptionHandler {
 	@ResponseBody
 	@ExceptionHandler(RuntimeException.class)
 	public AjaxResult globalException(HttpServletResponse response, RuntimeException ex) {
-		log.info("请求错误：" + ex.getMessage());
+		log.info("请求错误：" + ex);
+		ex.printStackTrace();
 		return AjaxResult.error(ex.getMessage());
 	}
 
