@@ -5,9 +5,6 @@ import java.net.InetSocketAddress;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
-import com.zj.service.CameraRepository;
-import com.zj.service.MediaService;
-
 import io.netty.bootstrap.ServerBootstrap;
 import io.netty.channel.ChannelFuture;
 import io.netty.channel.ChannelInitializer;
@@ -38,9 +35,7 @@ import lombok.extern.slf4j.Slf4j;
 public class MediaServer {
 
 	@Autowired
-	private MediaService mediaService;
-	@Autowired
-	private CameraRepository cameraRepository;
+	private FlvHandler flvHandler;
 
     public void start(InetSocketAddress socketAddress) {
         //new 一个主线程组
@@ -61,7 +56,7 @@ public class MediaServer {
                                 .addLast(new ChunkedWriteHandler())
                                 .addLast(new HttpObjectAggregator(64 * 1024))
                                 .addLast(new CorsHandler(corsConfig))
-                                .addLast(new FlvHandler(mediaService, cameraRepository));
+                                .addLast(flvHandler);
                     }
                 })
                 .localAddress(socketAddress)
@@ -79,7 +74,6 @@ public class MediaServer {
         //绑定端口,开始接收进来的连接
         try {
             ChannelFuture future = bootstrap.bind(socketAddress).sync();
-            log.info("流媒体服务启动开始监听端口: {}", socketAddress.getPort());
             future.channel().closeFuture().sync();
         } catch (InterruptedException e) {
             e.printStackTrace();

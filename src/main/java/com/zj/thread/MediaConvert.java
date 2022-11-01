@@ -12,7 +12,7 @@ import org.bytedeco.javacv.FFmpegLogCallback;
 import org.bytedeco.javacv.Frame;
 import org.bytedeco.javacv.FrameGrabber.Exception;
 
-import com.zj.entity.Camera;
+import com.zj.dto.CameraDto;
 import com.zj.service.MediaService;
 
 import cn.hutool.crypto.digest.MD5;
@@ -25,6 +25,9 @@ import io.netty.util.concurrent.GenericFutureListener;
 import lombok.extern.slf4j.Slf4j;
 
 /**
+ * 
+ * ******此类已经过时，后续会删除，请使用MediaRecodeOrTransfer******
+ * 
  * 拉流转换推流处理线程
  * 
  * @author ZJ
@@ -71,16 +74,16 @@ public class MediaConvert extends Thread {
 	/**
 	 * 相机
 	 */
-	private Camera camera;
+	private CameraDto cameraDto;
 
 	/**
-	 * @param camera
+	 * @param cameraDto
 	 * @param auto   流是否可以自动关闭
 	 */
-	public MediaConvert(Camera camera, boolean autoClose) {
+	public MediaConvert(CameraDto cameraDto, boolean autoClose) {
 		super();
 		this.autoClose = autoClose;
-		this.camera = camera;
+		this.cameraDto = cameraDto;
 	}
 
 	public boolean isRuning() {
@@ -96,7 +99,7 @@ public class MediaConvert extends Thread {
 	 */
 	private void convert() {
 		// 拉流器
-		FFmpegFrameGrabber grabber = new FFmpegFrameGrabber(camera.getUrl());
+		FFmpegFrameGrabber grabber = new FFmpegFrameGrabber(cameraDto.getUrl());
 		// 超时时间(15秒)
 		grabber.setOption("stimoout", "15000000");
 		grabber.setOption("threads", "1");
@@ -104,7 +107,7 @@ public class MediaConvert extends Thread {
 		// 设置缓存大小，提高画质、减少卡顿花屏
 		grabber.setOption("buffer_size", "1024000");
 		// 如果为rtsp流，增加配置
-		if ("rtsp".equals(camera.getUrl().substring(0, 4))) {
+		if ("rtsp".equals(cameraDto.getUrl().substring(0, 4))) {
 			// 设置打开协议tcp / udp
 			grabber.setOption("rtsp_transport", "tcp");
 		}
@@ -243,7 +246,7 @@ public class MediaConvert extends Thread {
 //				e.printStackTrace();
 			} catch (org.bytedeco.javacv.FrameRecorder.Exception e) {
 //				runing = false;
-				log.info("\r\n{}\r\n录制器出现异常。。。", camera.getUrl());
+				log.info("\r\n{}\r\n录制器出现异常。。。", cameraDto.getUrl());
 				e.printStackTrace();
 			}
 		}
@@ -262,7 +265,7 @@ public class MediaConvert extends Thread {
 		} finally {
 			runing = false;
 		}
-		log.info("关闭媒体流，{} ", camera.getUrl());
+		log.info("关闭媒体流，{} ", cameraDto.getUrl());
 	}
 
 	/**
@@ -321,7 +324,7 @@ public class MediaConvert extends Thread {
 		if (hcSize != newHcSize || wcSize != newWcSize) {
 			hcSize = newHcSize;
 			wcSize = newWcSize;
-			log.info("\r\n{}\r\nhttp连接数：{}, ws连接数：{} \r\n", camera.getUrl(), newHcSize, newWcSize);
+			log.info("\r\n{}\r\nhttp连接数：{}, ws连接数：{} \r\n", cameraDto.getUrl(), newHcSize, newWcSize);
 		}
 
 		// 自动拉流无需关闭
@@ -338,7 +341,7 @@ public class MediaConvert extends Thread {
 			// 5*2000=10000=10，等待10秒还没有客户端，则关闭推流
 			if (noClient > 2000) {
 				runing = false;
-				String mediaKey = MD5.create().digestHex(camera.getUrl());
+				String mediaKey = MD5.create().digestHex(cameraDto.getUrl());
 				MediaService.cameras.remove(mediaKey);
 
 			} else {
