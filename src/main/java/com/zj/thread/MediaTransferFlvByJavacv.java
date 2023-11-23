@@ -15,6 +15,7 @@ import com.zj.common.ClientType;
 import com.zj.dto.CameraDto;
 import com.zj.service.MediaService;
 
+import cn.hutool.core.thread.ThreadUtil;
 import io.netty.buffer.Unpooled;
 import io.netty.channel.ChannelFuture;
 import io.netty.channel.ChannelHandlerContext;
@@ -63,12 +64,7 @@ public class MediaTransferFlvByJavacv extends MediaTransfer implements Runnable 
 	 * 相机
 	 */
 	private CameraDto cameraDto;
-
-	/**
-	 * 监听线程，用于监听状态
-	 */
-	private Thread listenThread;
-
+	
 	/**
 	 * @param cameraDto
 	 * @param autoClose 流是否可以自动关闭
@@ -417,6 +413,7 @@ public class MediaTransferFlvByJavacv extends MediaTransfer implements Runnable 
 	 * 
 	 * @return
 	 */
+	@Override
 	public void hasClient() {
 
 		int newHcSize = httpClients.size();
@@ -450,18 +447,7 @@ public class MediaTransferFlvByJavacv extends MediaTransfer implements Runnable 
 	 * 监听客户端，用于判断无人观看时自动关闭推流
 	 */
 	public void listenClient() {
-		listenThread = new Thread(new Runnable() {
-			public void run() {
-				while (running) {
-					hasClient();
-					try {
-						Thread.sleep(1000);
-					} catch (InterruptedException e) {
-					}
-				}
-			}
-		});
-		listenThread.start();
+		MediaListenThread.putThread(this);
 	}
 
 	/**
@@ -514,6 +500,7 @@ public class MediaTransferFlvByJavacv extends MediaTransfer implements Runnable 
 				httpClients.remove(entry.getKey());
 			}
 		}
+		MediaListenThread.removeThread(this);
 	}
 
 	/**
