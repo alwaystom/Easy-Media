@@ -199,4 +199,9 @@ public class MediaTransferHls extends MediaTransfer {
 		errThread.start();
 	}
 	
+	@Override
+	public void hasClient() {
+	
+	}
+	
 }

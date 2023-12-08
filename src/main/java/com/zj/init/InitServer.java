@@ -20,7 +20,9 @@ import com.zj.mapper.CameraMapper;
 import com.zj.server.MediaServer;
 import com.zj.service.HlsService;
 import com.zj.service.MediaService;
+import com.zj.thread.MediaListenThread;
 
+import cn.hutool.core.thread.ThreadUtil;
 import cn.hutool.core.util.StrUtil;
 import lombok.extern.slf4j.Slf4j;
 
@@ -55,7 +57,7 @@ public class InitServer implements CommandLineRunner {
 	@Override
 	public void run(String... args) throws Exception {
 		initAutoPlay();
-		
+		ThreadUtil.execute(new MediaListenThread());
         String ip = InetAddress.getLocalHost().getHostAddress();
         String httpPort = env.getProperty("server.port");
         String path = env.getProperty("server.servlet.context-path");

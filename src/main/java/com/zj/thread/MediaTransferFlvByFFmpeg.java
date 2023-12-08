@@ -20,6 +20,7 @@ import com.zj.dto.CameraDto;
 import com.zj.service.MediaService;
 
 import cn.hutool.core.collection.CollUtil;
+import cn.hutool.core.thread.ThreadUtil;
 import io.netty.buffer.Unpooled;
 import io.netty.channel.ChannelFuture;
 import io.netty.channel.ChannelHandlerContext;
@@ -54,7 +55,6 @@ public class MediaTransferFlvByFFmpeg extends MediaTransfer {
 	private Thread inputThread;
 	private Thread errThread;
 	private Thread outputThread;
-	private Thread listenThread;
 	private boolean running = false; // 启动
 	private boolean enableLog = true;
 
@@ -288,18 +288,7 @@ public class MediaTransferFlvByFFmpeg extends MediaTransfer {
 	 * 监听客户端
 	 */
 	public void listenClient() {
-		listenThread = new Thread(new Runnable() {
-			public void run() {
-				while (running) {
-					hasClient();
-					try {
-						Thread.sleep(1000);
-					} catch (InterruptedException e) {
-					}
-				}
-			}
-		});
-		listenThread.start();
+		MediaListenThread.putThread(this);
 	}
 
 	/**
@@ -473,6 +462,7 @@ public class MediaTransferFlvByFFmpeg extends MediaTransfer {
 	 * 
 	 * @return
 	 */
+	@Override
 	public void hasClient() {
 
 		int newHcSize = httpClients.size();

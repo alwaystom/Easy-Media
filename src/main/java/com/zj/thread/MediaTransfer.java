@@ -58,7 +58,6 @@ public abstract class MediaTransfer {
 	@Getter@Setter
 	public TransferCallback transferCallback;
 	
-//	public void addClient() {
-//		
-//	}
+	public abstract void hasClient();
+
 }
